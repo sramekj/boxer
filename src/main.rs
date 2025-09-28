@@ -1,3 +1,4 @@
+use clap::Parser;
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::sync::Arc;
@@ -23,7 +24,21 @@ use windows::{
     },
 };
 
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+    #[arg(long)]
+    debug: bool,
+}
+
 fn main() -> windows::core::Result<()> {
+    let args = Args::parse();
+    if args.debug {
+        println!("Window HWND listing:");
+        enum_windows()?;
+        return Ok(());
+    }
+
     // Create shared toggle
     let enabled = Arc::new(AtomicBool::new(false));
     let running = Arc::new(AtomicBool::new(true));
@@ -86,8 +101,6 @@ fn main() -> windows::core::Result<()> {
         UnregisterHotKey(hwnd, HOTKEY_DEL_ID)?;
         UnregisterHotKey(hwnd, HOTKEY_ESC_ID)?;
     }
-
-    //enum_windows()?;
 
     let _ = worker.join();
 
