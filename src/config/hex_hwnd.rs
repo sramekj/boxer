@@ -19,17 +19,22 @@ pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<HWND>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    let trimmed = s.trim();
-    if trimmed.is_empty() {
-        Ok(None)
-    } else {
-        let hex_str = trimmed.trim_start_matches("0x");
-        usize::from_str_radix(hex_str, 16)
-            .map(|val| {
-                let ptr = val as *mut core::ffi::c_void;
-                Some(HWND(ptr))
-            })
-            .map_err(serde::de::Error::custom)
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    match opt {
+        Some(s) => {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                let hex_str = trimmed.trim_start_matches("0x");
+                usize::from_str_radix(hex_str, 16)
+                    .map(|val| {
+                        let ptr = val as *mut core::ffi::c_void;
+                        Some(HWND(ptr))
+                    })
+                    .map_err(serde::de::Error::custom)
+            }
+        }
+        None => Ok(None),
     }
 }

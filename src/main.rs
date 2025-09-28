@@ -27,9 +27,7 @@ fn main() -> windows::core::Result<()> {
         return Ok(());
     }
 
-    const CFG_FILENAME: &str = "config.toml";
-
-    let cfg = load_config(CFG_FILENAME);
+    let cfg = load_config();
 
     println!("Configuration: {:?}", cfg);
 

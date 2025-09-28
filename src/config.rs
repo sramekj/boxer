@@ -2,8 +2,8 @@ pub mod hex_hwnd;
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::{env, fs};
 use windows::Win32::Foundation::HWND;
 
 #[derive(Parser, Debug)]
@@ -23,7 +23,7 @@ pub enum Rotation {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct WindowConfig {
     pub title: Option<String>,
-    #[serde(with = "hex_hwnd")]
+    #[serde(default, with = "hex_hwnd")]
     pub hwnd: Option<HWND>,
     pub rotation: Rotation,
 }
@@ -50,17 +50,24 @@ impl Default for Config {
     }
 }
 
-pub fn load_config<P: AsRef<Path>>(path: P) -> Config {
-    if !Path::exists(path.as_ref()) {
+const CFG_FILENAME: &str = "config.toml";
+fn get_config_path(filename: &str) -> Option<PathBuf> {
+    let exe_path = env::current_exe().ok()?;
+    let exe_dir = exe_path.parent()?;
+    Some(exe_dir.join(filename))
+}
+pub fn load_config() -> Config {
+    let config_path = get_config_path(CFG_FILENAME).expect("Failed to determine config file path");
+    if !Path::exists(config_path.as_path()) {
         let cfg = Config::default();
         fs::write(
-            path,
+            config_path.as_path(),
             toml::to_string(&cfg).expect("Could not serialize configuration"),
         )
         .expect("Could not write configuration");
         cfg
     } else {
-        let toml = fs::read_to_string(path).expect("Could not read configuration");
+        let toml = fs::read_to_string(config_path.as_path()).expect("Could not read configuration");
         let cfg: Config = toml::from_str(&toml).expect("Could not deserialize configuration");
         cfg
     }
