@@ -2,13 +2,13 @@ pub mod config;
 mod win_util;
 
 use crate::config::{Args, load_config};
-use crate::win_util::{enum_windows, find_window_by_title, send_key_to_window};
+use crate::win_util::{enum_windows, find_window_by_title, focus_window, send_key_vk};
 use clap::Parser;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use windows::Win32::UI::Input::KeyboardAndMouse::VK_A;
+use windows::Win32::UI::Input::KeyboardAndMouse::VK_I;
 use windows::{
     Win32::Foundation::HWND,
     Win32::UI::Input::KeyboardAndMouse::{
@@ -51,7 +51,7 @@ fn main() -> windows::core::Result<()> {
 
     let worker = thread::spawn(move || {
         //debug....
-        let xxx = find_window_by_title("Untitled - Notepad");
+        let xxx = find_window_by_title("[#] Nevergrind [#]");
         println!("HWND: {:?}", xxx);
 
         while running_clone.load(Ordering::SeqCst) {
@@ -59,12 +59,11 @@ fn main() -> windows::core::Result<()> {
                 //TODO... just testing now
 
                 println!("Chilling...");
-                if let Err(e) = send_key_to_window(xxx, VK_A) {
-                    println!("Error: {:?}", e);
-                }
-                //send_key_vk(VK_A).expect("Failed to send key to window");
+
+                let _ = focus_window(xxx);
+                send_key_vk(VK_I).expect("Failed to send key to window");
             }
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(1000));
         }
     });
 

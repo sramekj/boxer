@@ -1,12 +1,14 @@
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, WPARAM};
+use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, FindWindowW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible, PostMessageW,
-    WM_KEYDOWN, WM_KEYUP,
+    EnumWindows, FindWindowW, GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW,
+    GetWindowThreadProcessId, IsIconic, IsWindowVisible, PostMessageW, SW_RESTORE,
+    SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
@@ -42,13 +44,15 @@ pub fn send_key_vk(vk: VIRTUAL_KEY) -> windows::core::Result<()> {
     }
 }
 
+// does not work with games :((
+#[allow(dead_code)]
 pub fn send_key_to_window(hwnd: Option<HWND>, vk: VIRTUAL_KEY) -> windows::core::Result<()> {
     unsafe {
         let vk = vk.0 as usize;
-        if let Err(_) = PostMessageW(hwnd, WM_KEYDOWN, WPARAM(vk), LPARAM(0)) {
+        if PostMessageW(hwnd, WM_KEYDOWN, WPARAM(vk), LPARAM(0)).is_err() {
             return Err(Error::from(GetLastError()));
         }
-        if let Err(_) = PostMessageW(hwnd, WM_KEYUP, WPARAM(vk), LPARAM(0)) {
+        if PostMessageW(hwnd, WM_KEYUP, WPARAM(vk), LPARAM(0)).is_err() {
             return Err(Error::from(GetLastError()));
         }
         Ok(())
@@ -87,5 +91,29 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, _: LPARAM) -> windows::c
             println!("HWND: {:?}, Title: {}", hwnd, title);
         }
         true.into()
+    }
+}
+
+pub fn focus_window(hwnd_opt: Option<HWND>) -> windows::core::BOOL {
+    unsafe {
+        if let Some(hwnd) = hwnd_opt {
+            if IsIconic(hwnd).as_bool() {
+                let _ = ShowWindow(hwnd, SW_RESTORE);
+            }
+            let fg_window = GetForegroundWindow();
+            let current_thread = GetCurrentThreadId();
+            let fg_thread = GetWindowThreadProcessId(fg_window, Some(std::ptr::null_mut()));
+            // Attach input threads temporarily
+            let attached = AttachThreadInput(fg_thread, current_thread, true).as_bool();
+            // Set focus and foreground
+            let _ = SetFocus(hwnd_opt);
+            let result = SetForegroundWindow(hwnd);
+            // Detach input threads
+            if attached {
+                let _ = AttachThreadInput(fg_thread, current_thread, false);
+            }
+            return result;
+        }
+        false.into()
     }
 }
