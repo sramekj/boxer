@@ -1,15 +1,22 @@
 use std::ffi::{OsStr, OsString};
+use std::fmt::Display;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, WPARAM};
-use windows::Win32::Graphics::Gdi::{ClientToScreen, GetDC, GetPixel, ReleaseDC};
+use std::thread;
+use std::time::Duration;
+use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, RECT, WPARAM};
+use windows::Win32::Graphics::Gdi::{
+    CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetPixel, HGDIOBJ,
+    ReleaseDC, ScreenToClient, SelectObject,
+};
+use windows::Win32::Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, FindWindowW, GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW,
-    GetWindowThreadProcessId, IsIconic, IsWindowVisible, PostMessageW, SW_RESTORE,
-    SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
+    EnumWindows, FindWindowW, GetClientRect, GetCursorPos, GetForegroundWindow,
+    GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible,
+    PostMessageW, SW_RESTORE, SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
@@ -119,30 +126,112 @@ pub fn focus_window(hwnd_opt: Option<HWND>) -> windows::core::BOOL {
     }
 }
 
-pub fn get_pixel_color(hwnd_opt: Option<HWND>, x: i32, y: i32) -> windows::core::Result<u32> {
+#[derive(Debug)]
+pub struct PixelColor(pub u32);
+
+impl Display for PixelColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#{:06X}", self.0 & 0xFFFFFF)
+    }
+}
+
+const CLR_INVALID: u32 = 0xFFFFFFFF;
+
+pub fn get_pixel_color(
+    hwnd_opt: Option<HWND>,
+    x: i32,
+    y: i32,
+) -> windows::core::Result<PixelColor> {
     unsafe {
         if let Some(hwnd) = hwnd_opt {
-            // Convert (x, y) relative to window's client area -> screen coordinates
-            let mut point = POINT { x, y };
-            if !ClientToScreen(hwnd, &mut point).as_bool() {
+            let hdc_window = GetDC(hwnd_opt);
+            let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+
+            // Get window size
+            let mut rect = RECT::default();
+            if GetClientRect(hwnd, &mut rect).is_err() {
                 return Err(Error::from(GetLastError()));
             }
-            // Get the device context (DC) of the window
-            let hdc = GetDC(hwnd_opt);
-            if hdc.0 == std::ptr::null_mut() {
+
+            let width = rect.right - rect.left;
+            let height = rect.bottom - rect.top;
+
+            let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+            let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+
+            // Capture window contents into the memory DC
+            if PrintWindow(hwnd, hdc_mem, PRINT_WINDOW_FLAGS(0)).as_bool() == false {
                 return Err(Error::from(GetLastError()));
             }
-            // Read pixel color
-            let color = GetPixel(hdc, point.x, point.y);
-            // Always release the DC when done
-            ReleaseDC(hwnd_opt, hdc);
-            // If GetPixel failed, it returns 0xFFFFFFFF
-            if color.0 == 0xFFFFFFFF {
+
+            // Read the pixel color
+            let color = GetPixel(hdc_mem, x, y);
+
+            // Clean up
+            SelectObject(hdc_mem, old_obj);
+            if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
                 return Err(Error::from(GetLastError()));
             }
-            Ok(color.0)
+            if DeleteDC(hdc_mem).as_bool() == false {
+                return Err(Error::from(GetLastError()));
+            }
+            ReleaseDC(hwnd_opt, hdc_window);
+
+            if color.0 == CLR_INVALID {
+                Err(Error::from(GetLastError()))
+            } else {
+                Ok(PixelColor(color.0))
+            }
         } else {
-            Ok(0)
+            Ok(PixelColor(CLR_INVALID))
         }
+    }
+}
+
+pub fn debug_mouse_color(hwnd_opt: Option<HWND>) -> windows::core::Result<()> {
+    loop {
+        unsafe {
+            if let Some(hwnd) = hwnd_opt {
+                let mut pt = POINT::default();
+                if GetCursorPos(&mut pt).is_err() {
+                    continue;
+                }
+
+                // Convert screen pos to window-client relative
+                let mut client_pt = pt;
+                if !ScreenToClient(hwnd, &mut client_pt).as_bool() {
+                    continue;
+                }
+
+                // Now client_pt is relative to hwnd
+                let x = client_pt.x;
+                let y = client_pt.y;
+
+                if x < 0 || y < 0 {
+                    continue;
+                }
+
+                match get_pixel_color(hwnd_opt, x, y) {
+                    Ok(color) => {
+                        println!("Mouse at ({}, {}) → Color: {}", x, y, color);
+                    }
+                    Err(e) => {
+                        println!("Failed to get color at ({}, {}): {:?}", x, y, e);
+                    }
+                }
+            }
+            thread::sleep(Duration::from_millis(500));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::win_util::PixelColor;
+
+    #[test]
+    fn test_pixel_color_display() {
+        const COLOR: PixelColor = PixelColor(11189196);
+        assert_eq!(COLOR.to_string(), "#AABBCC");
     }
 }

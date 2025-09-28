@@ -9,8 +9,10 @@ use windows::Win32::Foundation::HWND;
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 pub struct Args {
-    #[arg(short, long)]
+    #[arg(short = 'd', long)]
     pub debug: bool,
+    #[arg(short = 'm', long = "debug-mouse")]
+    pub debug_mouse: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

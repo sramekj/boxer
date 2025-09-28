@@ -3,7 +3,9 @@ mod game_loop;
 mod win_util;
 
 use crate::config::{Args, load_config};
-use crate::win_util::{enum_windows, find_window_by_title, focus_window, send_key_vk};
+use crate::win_util::{
+    debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
+};
 use clap::Parser;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -31,6 +33,25 @@ fn main() -> windows::core::Result<()> {
     let cfg = load_config();
 
     println!("Configuration: {:?}", cfg);
+
+    if args.debug_mouse {
+        if cfg.windows.len() == 0 {
+            println!("No windows in configuration found");
+            return Ok(());
+        }
+        if let Some(first_window) = cfg.windows.first() {
+            if let Some(window_title) = first_window.title.as_ref().map(|x| x.as_str()) {
+                println!("Window title: {}", window_title);
+                let hwnd_opt = find_window_by_title(window_title);
+                if (hwnd_opt).is_none() {
+                    println!("Failed to find window: {}", window_title);
+                    return Ok(());
+                }
+                debug_mouse_color(hwnd_opt)?;
+            }
+        }
+        return Ok(());
+    }
 
     let enabled = Arc::new(AtomicBool::new(false));
     let running = Arc::new(AtomicBool::new(true));
