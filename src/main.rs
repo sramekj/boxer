@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 use windows::{
     Win32::Foundation::{HWND, LRESULT, WPARAM, LPARAM},
-    Win32::UI::Input::KeyboardAndMouse::{MOD_NOREPEAT, RegisterHotKey, UnregisterHotKey},
+    Win32::UI::Input::KeyboardAndMouse::{MOD_NOREPEAT, RegisterHotKey, UnregisterHotKey, VK_DELETE, VK_ESCAPE},
     Win32::UI::WindowsAndMessaging::{
         GetMessageW, TranslateMessage, DispatchMessageW, MSG, WM_HOTKEY,
     },
@@ -22,15 +22,12 @@ fn main() -> windows::core::Result<()> {
     const HOTKEY_DEL_ID: i32 = 1;
     const HOTKEY_ESC_ID: i32 = 2;
 
-    let vk_delete: u32 = 0x2E;
-    let vk_esc: u32 = 0x1B;
-
     // hWnd = HWND(0) => message delivered to thread message queue
     let hwnd = Some(HWND::default());
 
     unsafe {
-        RegisterHotKey(hwnd, HOTKEY_DEL_ID, MOD_NOREPEAT, vk_delete)?;
-        RegisterHotKey(hwnd, HOTKEY_ESC_ID, MOD_NOREPEAT, vk_esc)?;
+        RegisterHotKey(hwnd, HOTKEY_DEL_ID, MOD_NOREPEAT, VK_DELETE.0 as u32)?;
+        RegisterHotKey(hwnd, HOTKEY_ESC_ID, MOD_NOREPEAT, VK_ESCAPE.0 as u32)?;
     }
 
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
