@@ -14,7 +14,7 @@ pub struct Args {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub enum Rotation {
+pub enum Class {
     Enchanter,
     Warlock,
     Warrior,
@@ -25,13 +25,15 @@ pub struct WindowConfig {
     pub title: Option<String>,
     #[serde(default, with = "hex_hwnd")]
     pub hwnd: Option<HWND>,
-    pub rotation: Rotation,
+    pub class: Class,
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     pub number_of_windows: u32,
     pub window_width: u32,
     pub window_height: u32,
+    pub has_enchanter: bool,
+    pub skill_haste_percent: f32,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -41,10 +43,12 @@ impl Default for Config {
             number_of_windows: 1,
             window_width: 1280,
             window_height: 720,
+            has_enchanter: true,
+            skill_haste_percent: 10.0,
             windows: vec![WindowConfig {
                 title: Some("[#] Nevergrind [#]".into()),
                 hwnd: None,
-                rotation: Rotation::Enchanter,
+                class: Class::Enchanter,
             }],
         }
     }

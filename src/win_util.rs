@@ -1,6 +1,7 @@
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, WPARAM};
+use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, WPARAM};
+use windows::Win32::Graphics::Gdi::{ClientToScreen, GetDC, GetPixel, ReleaseDC};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
@@ -115,5 +116,33 @@ pub fn focus_window(hwnd_opt: Option<HWND>) -> windows::core::BOOL {
             return result;
         }
         false.into()
+    }
+}
+
+pub fn get_pixel_color(hwnd_opt: Option<HWND>, x: i32, y: i32) -> windows::core::Result<u32> {
+    unsafe {
+        if let Some(hwnd) = hwnd_opt {
+            // Convert (x, y) relative to window's client area -> screen coordinates
+            let mut point = POINT { x, y };
+            if !ClientToScreen(hwnd, &mut point).as_bool() {
+                return Err(Error::from(GetLastError()));
+            }
+            // Get the device context (DC) of the window
+            let hdc = GetDC(hwnd_opt);
+            if hdc.0 == std::ptr::null_mut() {
+                return Err(Error::from(GetLastError()));
+            }
+            // Read pixel color
+            let color = GetPixel(hdc, point.x, point.y);
+            // Always release the DC when done
+            ReleaseDC(hwnd_opt, hdc);
+            // If GetPixel failed, it returns 0xFFFFFFFF
+            if color.0 == 0xFFFFFFFF {
+                return Err(Error::from(GetLastError()));
+            }
+            Ok(color.0)
+        } else {
+            Ok(0)
+        }
     }
 }

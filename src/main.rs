@@ -1,4 +1,5 @@
 pub mod config;
+mod game_loop;
 mod win_util;
 
 use crate::config::{Args, load_config};
