@@ -1,11 +1,12 @@
+pub mod config;
+
+use crate::config::{Args, load_config};
 use clap::Parser;
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::fs;
 use std::time::Duration;
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -25,59 +26,6 @@ use windows::{
         DispatchMessageW, GetMessageW, MSG, TranslateMessage, WM_HOTKEY,
     },
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Parser, Debug)]
-#[command(author, version, about)]
-struct Args {
-    #[arg(short,long)]
-    debug: bool,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-enum Rotation { Enchanter, Warlock, Warrior }
-
-#[derive(Deserialize, Serialize, Debug)]
-struct WindowConfig {
-    title: Option<String>,
-    hwnd: Option<u32>,
-    rotation: Rotation,
-}
-#[derive(Deserialize, Serialize, Debug)]
-struct Config {
-    number_of_windows: u32,
-    window_width: u32,
-    window_height: u32,
-    windows: Vec<WindowConfig>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            number_of_windows: 1,
-            window_width: 1280,
-            window_height: 720,
-            windows: vec!(WindowConfig{
-                title: Some("[#] Nevergrind [#]".into()),
-                hwnd: None,
-                rotation: Rotation::Enchanter,
-            }),
-        }
-    }
-}
-
-fn load_config<P: AsRef<Path>>(path: P) -> Config {
-    if !Path::exists(path.as_ref()) {
-        let cfg = Config::default();
-        fs::write(path, toml::to_string(&cfg).expect("Could not serialize configuration")).expect("Could not write configuration");
-        cfg
-    } else {
-        let toml = fs::read_to_string(path).expect("Could not read configuration");
-        let cfg: Config = toml::from_str(&toml).expect("Could not deserialize configuration");
-        cfg
-    }
-
-}
 
 fn main() -> windows::core::Result<()> {
     let args = Args::parse();
@@ -112,19 +60,17 @@ fn main() -> windows::core::Result<()> {
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
 
     let worker = thread::spawn(move || {
-
         //debug....
         let xxx = find_window_by_title("Untitled - Notepad");
         println!("HWND: {:?}", xxx);
 
         while running_clone.load(Ordering::SeqCst) {
             if enabled_clone.load(Ordering::SeqCst) {
-
                 //TODO... just testing now
 
                 println!("Chilling...");
                 if let Err(e) = send_key_to_window(xxx, VK_A) {
-                   println!("Error: {:?}", e);
+                    println!("Error: {:?}", e);
                 }
                 //send_key_vk(VK_A).expect("Failed to send key to window");
             }
