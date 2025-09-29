@@ -1,6 +1,7 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::ptr::null_mut;
 use std::thread;
 use std::time::Duration;
 use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, RECT, WPARAM};
@@ -143,53 +144,82 @@ pub fn get_pixel_color(
     y: i32,
 ) -> windows::core::Result<PixelColor> {
     unsafe {
-        if let Some(hwnd) = hwnd_opt {
-            let hdc_window = GetDC(hwnd_opt);
-            let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+        match hwnd_opt {
+            Some(hwnd) => {
+                let hdc_window = GetDC(hwnd_opt);
+                if hdc_window.0 == null_mut() {
+                    return Err(Error::from(GetLastError()));
+                }
 
-            // Get window size
-            let mut rect = RECT::default();
-            GetClientRect(hwnd, &mut rect).map_err(|e| Error::from(GetLastError()))?;
+                let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+                if hdc_mem.0 == null_mut() {
+                    return Err(Error::from(GetLastError()));
+                }
 
-            let width = rect.right - rect.left;
-            let height = rect.bottom - rect.top;
+                // Get window size
+                let mut rect = RECT::default();
+                GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
 
-            let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
-            let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+                let width = rect.right - rect.left;
+                let height = rect.bottom - rect.top;
 
-            BitBlt(
-                hdc_mem,
-                0,
-                0,
-                width,
-                height,
-                Some(hdc_window),
-                0,
-                0,
-                SRCCOPY,
-            )
-            .map_err(|_| Error::from(GetLastError()))?;
+                let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+                let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
 
-            // Read the pixel color
-            let color = GetPixel(hdc_mem, x, y);
+                BitBlt(
+                    hdc_mem,
+                    0,
+                    0,
+                    width,
+                    height,
+                    Some(hdc_window),
+                    0,
+                    0,
+                    SRCCOPY,
+                )
+                .map_err(|_| Error::from(GetLastError()))?;
 
-            // Clean up
-            SelectObject(hdc_mem, old_obj);
-            if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
-                return Err(Error::from(GetLastError()));
+                // Read the pixel color
+                let color = GetPixel(hdc_mem, x, y);
+                let result = color.0;
+
+                // Clean up
+                SelectObject(hdc_mem, old_obj);
+                if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
+                    return Err(Error::from(GetLastError()));
+                }
+                if DeleteDC(hdc_mem).as_bool() == false {
+                    return Err(Error::from(GetLastError()));
+                }
+                if ReleaseDC(hwnd_opt, hdc_window) == 0 {
+                    return Err(Error::from(GetLastError()));
+                }
+
+                if result == CLR_INVALID {
+                    Err(Error::from(GetLastError()))
+                } else {
+                    Ok(PixelColor(result))
+                }
             }
-            if DeleteDC(hdc_mem).as_bool() == false {
-                return Err(Error::from(GetLastError()));
-            }
-            ReleaseDC(hwnd_opt, hdc_window);
+            None => {
+                let hdc_screen = GetDC(None);
+                if hdc_screen.0 == null_mut() {
+                    return Err(Error::from(GetLastError()));
+                }
 
-            if color.0 == CLR_INVALID {
-                Err(Error::from(GetLastError()))
-            } else {
-                Ok(PixelColor(color.0))
+                let color = GetPixel(hdc_screen, x, y);
+                let result = color.0;
+
+                if ReleaseDC(None, hdc_screen) == 0 {
+                    return Err(Error::from(GetLastError()));
+                }
+
+                if result == CLR_INVALID {
+                    Err(Error::from(GetLastError()))
+                } else {
+                    Ok(PixelColor(result))
+                }
             }
-        } else {
-            Ok(PixelColor(CLR_INVALID))
         }
     }
 }

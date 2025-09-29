@@ -4,7 +4,8 @@ mod win_util;
 
 use crate::config::{Args, load_config};
 use crate::win_util::{
-    debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
+    debug_mouse_color, enum_windows, find_window_by_title, focus_window, get_pixel_color,
+    send_key_vk,
 };
 use clap::Parser;
 use std::sync::Arc;
