@@ -41,10 +41,10 @@ fn main() -> windows::core::Result<()> {
         }
         if let Some(first_window) = cfg.windows.first() {
             if let Some(window_title) = first_window.title.as_ref().map(|x| x.as_str()) {
-                println!("Window title: {}", window_title);
                 let hwnd_opt = find_window_by_title(window_title);
-                if (hwnd_opt).is_none() {
-                    println!("Failed to find window: {}", window_title);
+                println!("Window title: {} HWND: {:?}", window_title, hwnd_opt);
+                if hwnd_opt.is_none() {
+                    println!("Failed to get window handle for: {}", window_title);
                     return Ok(());
                 }
                 debug_mouse_color(hwnd_opt, cfg.window_width, cfg.window_height)?;
