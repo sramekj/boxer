@@ -1,26 +1,17 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
-use std::fs::File;
-use std::io::Write;
-use std::mem::zeroed;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
-use windows::Win32::Foundation::{
-    ERROR_INVALID_WINDOW_HANDLE, GetLastError, HWND, LPARAM, POINT, RECT, WPARAM,
-};
-use windows::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC,
-    DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, GetPixel, HGDIOBJ, ReleaseDC,
-    SRCCOPY, ScreenToClient, SelectObject,
-};
+use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, WPARAM};
+use windows::Win32::Graphics::Gdi::{ClientToScreen, GetDC, GetPixel, ReleaseDC, ScreenToClient};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, FindWindowW, GetClientRect, GetCursorPos, GetForegroundWindow,
-    GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible,
-    PostMessageW, SW_RESTORE, SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
+    EnumWindows, FindWindowW, GetCursorPos, GetForegroundWindow, GetWindowTextLengthW,
+    GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, PostMessageW, SW_RESTORE,
+    SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
@@ -56,7 +47,7 @@ pub fn send_key_vk(vk: VIRTUAL_KEY) -> windows::core::Result<()> {
     }
 }
 
-// does not work with games :((
+// does not work with games >:((
 #[allow(dead_code)]
 pub fn send_key_to_window(hwnd: Option<HWND>, vk: VIRTUAL_KEY) -> windows::core::Result<()> {
     unsafe {
@@ -141,104 +132,28 @@ impl Display for PixelColor {
 
 const CLR_INVALID: u32 = 0xFFFFFFFF;
 
-fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
-    (red as u32) | ((green as u32) << 8) | ((blue as u32) << 16)
-}
-pub fn get_pixel_color_blt(
+pub fn get_pixel_color(
     hwnd_opt: Option<HWND>,
     x: i32,
     y: i32,
 ) -> windows::core::Result<PixelColor> {
     unsafe {
-        let hwnd = hwnd_opt.ok_or_else(|| Error::from(ERROR_INVALID_WINDOW_HANDLE))?;
+        let mut point = POINT { x, y };
+        if let Some(hwnd) = hwnd_opt {
+            if ClientToScreen(hwnd, &mut point).as_bool() == false {
+                return Err(Error::from(GetLastError()));
+            }
+        }
 
-        let hdc_window = GetDC(hwnd_opt);
-        if hdc_window.0 == null_mut() {
+        let hdc_screen = GetDC(None);
+        if hdc_screen.0 == null_mut() {
             return Err(Error::from(GetLastError()));
         }
 
-        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
-        if hdc_mem.0 == null_mut() {
-            return Err(Error::from(GetLastError()));
-        }
+        let color = GetPixel(hdc_screen, point.x, point.y);
+        let result = color.0;
 
-        // Get window size
-        let mut rect = RECT::default();
-        GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
-
-        let width = rect.right - rect.left;
-        let height = rect.bottom - rect.top;
-
-        let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
-        let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
-
-        //copy to mem device context
-        BitBlt(
-            hdc_mem,
-            0,
-            0,
-            width,
-            height,
-            Some(hdc_window),
-            0,
-            0,
-            SRCCOPY,
-        )
-        .map_err(|_| Error::from(GetLastError()))?;
-
-        //get image data
-        let mut bmi: BITMAPINFO = zeroed();
-        bmi.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
-        bmi.bmiHeader.biWidth = width;
-        bmi.bmiHeader.biHeight = -height; // negative to indicate top-down DIB
-        bmi.bmiHeader.biPlanes = 1;
-        bmi.bmiHeader.biBitCount = 32; // We want BGRA (4 bytes per pixel)
-        bmi.bmiHeader.biCompression = BI_RGB.0;
-
-        let row_stride = (width * 4) as usize;
-        let image_size = row_stride * (height as usize);
-        let mut buffer = vec![0u8; image_size];
-
-        let res = GetDIBits(
-            hdc_mem,
-            hbitmap,
-            0,
-            height as u32,
-            Some(buffer.as_mut_ptr() as *mut _),
-            &mut bmi,
-            DIB_RGB_COLORS,
-        );
-
-        if res == 0 {
-            return Err(Error::from(GetLastError()));
-        }
-
-        //DEBUG: write raw bytes to file
-        if cfg!(debug_assertions) {
-            let mut f = File::create("capture.raw")?;
-            f.write_all(&buffer)?;
-        }
-
-        // Calculate the pixel index
-        let px = x.clamp(0, width - 1) as usize;
-        let py = y.clamp(0, height - 1) as usize;
-
-        let index = py * row_stride + px * 4;
-        let blue = buffer[index];
-        let green = buffer[index + 1];
-        let red = buffer[index + 2];
-
-        let result = rgb_to_colorref(red, green, blue);
-
-        // Clean up
-        SelectObject(hdc_mem, old_obj);
-        if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
-            return Err(Error::from(GetLastError()));
-        }
-        if DeleteDC(hdc_mem).as_bool() == false {
-            return Err(Error::from(GetLastError()));
-        }
-        if ReleaseDC(hwnd_opt, hdc_window) == 0 {
+        if ReleaseDC(None, hdc_screen) == 0 {
             return Err(Error::from(GetLastError()));
         }
 
@@ -246,55 +161,6 @@ pub fn get_pixel_color_blt(
             Err(Error::from(GetLastError()))
         } else {
             Ok(PixelColor(result))
-        }
-    }
-}
-
-pub fn get_pixel_color(
-    hwnd_opt: Option<HWND>,
-    x: i32,
-    y: i32,
-) -> windows::core::Result<PixelColor> {
-    unsafe {
-        match hwnd_opt {
-            Some(_) => {
-                let hdc_window = GetDC(hwnd_opt);
-                if hdc_window.0 == null_mut() {
-                    return Err(Error::from(GetLastError()));
-                }
-
-                let color = GetPixel(hdc_window, x, y);
-                let result = color.0;
-
-                if ReleaseDC(hwnd_opt, hdc_window) == 0 {
-                    return Err(Error::from(GetLastError()));
-                }
-
-                if result == CLR_INVALID {
-                    Err(Error::from(GetLastError()))
-                } else {
-                    Ok(PixelColor(result))
-                }
-            }
-            None => {
-                let hdc_screen = GetDC(None);
-                if hdc_screen.0 == null_mut() {
-                    return Err(Error::from(GetLastError()));
-                }
-
-                let color = GetPixel(hdc_screen, x, y);
-                let result = color.0;
-
-                if ReleaseDC(None, hdc_screen) == 0 {
-                    return Err(Error::from(GetLastError()));
-                }
-
-                if result == CLR_INVALID {
-                    Err(Error::from(GetLastError()))
-                } else {
-                    Ok(PixelColor(result))
-                }
-            }
         }
     }
 }
