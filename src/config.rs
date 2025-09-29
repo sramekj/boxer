@@ -47,11 +47,18 @@ impl Default for Config {
             window_height: 720,
             has_enchanter: true,
             skill_haste_percent: 10.0,
-            windows: vec![WindowConfig {
-                title: Some("[#] Nevergrind [#]".into()),
-                hwnd: None,
-                class: Class::Enchanter,
-            }],
+            windows: vec![
+                WindowConfig {
+                    title: Some("[#] [Steam1] Nevergrind [#]".into()),
+                    hwnd: None,
+                    class: Class::Enchanter,
+                },
+                WindowConfig {
+                    title: Some("[#] [Steam2] Nevergrind [#]".into()),
+                    hwnd: None,
+                    class: Class::Warlock,
+                },
+            ],
         }
     }
 }
