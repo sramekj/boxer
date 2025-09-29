@@ -320,10 +320,10 @@ fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
 fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
     match get_pixel_color(hwnd, x, y) {
         Ok(color) => {
-            println!("Color at ({}, {}): {}", x, y, color);
+            println!("Color: {}", color);
         }
         Err(e) => {
-            println!("Failed to get color at ({}, {}): {:?}", x, y, e);
+            println!("Failed to get color at [{}, {}]: {:?}", x, y, e);
         }
     }
 }
@@ -339,8 +339,8 @@ pub fn debug_mouse(hwnd: HWND) {
         if !ScreenToClient(hwnd, &mut pt).as_bool() {
             return;
         }
-        println!(
-            "Mouse at: screen[{}, {}] window[{}, {}]",
+        print!(
+            "Mouse at: screen[{}, {}] window[{}, {}]\t",
             abs_x, abs_y, pt.x, pt.y
         );
     }

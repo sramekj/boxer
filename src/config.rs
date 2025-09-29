@@ -11,8 +11,8 @@ use windows::Win32::Foundation::HWND;
 pub struct Args {
     #[arg(short = 'd', long)]
     pub debug: bool,
-    //#[arg(short = 'm', long = "debug-mouse", default_value_t = true)]
-    #[arg(short = 'm', long = "debug-mouse")]
+    #[arg(short = 'm', long = "debug-mouse", default_value_t = true)]
+    //#[arg(short = 'm', long = "debug-mouse")]
     pub debug_mouse: bool,
     #[arg(long = "debug-interval", default_value = "1000")]
     pub debug_interval_ms: u64,
