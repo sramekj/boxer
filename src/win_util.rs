@@ -4,12 +4,13 @@ use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
 use std::thread;
 use std::time::Duration;
-use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, RECT, WPARAM};
+use windows::Win32::Foundation::{
+    ERROR_INVALID_WINDOW_HANDLE, GetLastError, HWND, LPARAM, POINT, RECT, WPARAM,
+};
 use windows::Win32::Graphics::Gdi::{
     BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetPixel,
     HGDIOBJ, ReleaseDC, SRCCOPY, ScreenToClient, SelectObject,
 };
-use windows::Win32::Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
@@ -138,6 +139,73 @@ impl Display for PixelColor {
 
 const CLR_INVALID: u32 = 0xFFFFFFFF;
 
+pub fn get_pixel_color_blt(
+    hwnd_opt: Option<HWND>,
+    x: i32,
+    y: i32,
+) -> windows::core::Result<PixelColor> {
+    unsafe {
+        if let Some(hwnd) = hwnd_opt {
+            let hdc_window = GetDC(hwnd_opt);
+            if hdc_window.0 == null_mut() {
+                return Err(Error::from(GetLastError()));
+            }
+
+            let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+            if hdc_mem.0 == null_mut() {
+                return Err(Error::from(GetLastError()));
+            }
+
+            // Get window size
+            let mut rect = RECT::default();
+            GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
+
+            let width = rect.right - rect.left;
+            let height = rect.bottom - rect.top;
+
+            let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+            let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+
+            BitBlt(
+                hdc_mem,
+                0,
+                0,
+                width,
+                height,
+                Some(hdc_window),
+                0,
+                0,
+                SRCCOPY,
+            )
+            .map_err(|_| Error::from(GetLastError()))?;
+
+            // Read the pixel color
+            let color = GetPixel(hdc_mem, x, y);
+            let result = color.0;
+
+            // Clean up
+            SelectObject(hdc_mem, old_obj);
+            if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
+                return Err(Error::from(GetLastError()));
+            }
+            if DeleteDC(hdc_mem).as_bool() == false {
+                return Err(Error::from(GetLastError()));
+            }
+            if ReleaseDC(hwnd_opt, hdc_window) == 0 {
+                return Err(Error::from(GetLastError()));
+            }
+
+            if result == CLR_INVALID {
+                Err(Error::from(GetLastError()))
+            } else {
+                Ok(PixelColor(result))
+            }
+        } else {
+            Err(Error::from(ERROR_INVALID_WINDOW_HANDLE))
+        }
+    }
+}
+
 pub fn get_pixel_color(
     hwnd_opt: Option<HWND>,
     x: i32,
@@ -145,53 +213,16 @@ pub fn get_pixel_color(
 ) -> windows::core::Result<PixelColor> {
     unsafe {
         match hwnd_opt {
-            Some(hwnd) => {
-                let hdc_window = GetDC(hwnd_opt);
-                if hdc_window.0 == null_mut() {
+            Some(_) => {
+                let hdc_screen = GetDC(hwnd_opt);
+                if hdc_screen.0 == null_mut() {
                     return Err(Error::from(GetLastError()));
                 }
 
-                let hdc_mem = CreateCompatibleDC(Some(hdc_window));
-                if hdc_mem.0 == null_mut() {
-                    return Err(Error::from(GetLastError()));
-                }
-
-                // Get window size
-                let mut rect = RECT::default();
-                GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
-
-                let width = rect.right - rect.left;
-                let height = rect.bottom - rect.top;
-
-                let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
-                let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
-
-                BitBlt(
-                    hdc_mem,
-                    0,
-                    0,
-                    width,
-                    height,
-                    Some(hdc_window),
-                    0,
-                    0,
-                    SRCCOPY,
-                )
-                .map_err(|_| Error::from(GetLastError()))?;
-
-                // Read the pixel color
-                let color = GetPixel(hdc_mem, x, y);
+                let color = GetPixel(hdc_screen, x, y);
                 let result = color.0;
 
-                // Clean up
-                SelectObject(hdc_mem, old_obj);
-                if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
-                    return Err(Error::from(GetLastError()));
-                }
-                if DeleteDC(hdc_mem).as_bool() == false {
-                    return Err(Error::from(GetLastError()));
-                }
-                if ReleaseDC(hwnd_opt, hdc_window) == 0 {
+                if ReleaseDC(hwnd_opt, hdc_screen) == 0 {
                     return Err(Error::from(GetLastError()));
                 }
 
