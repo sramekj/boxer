@@ -112,7 +112,7 @@ pub fn focus_window(hwnd_opt: Option<HWND>) -> windows::core::BOOL {
             }
             let fg_window = GetForegroundWindow();
             let current_thread = GetCurrentThreadId();
-            let fg_thread = GetWindowThreadProcessId(fg_window, Some(std::ptr::null_mut()));
+            let fg_thread = GetWindowThreadProcessId(fg_window, Some(null_mut()));
             // Attach input threads temporarily
             let attached = AttachThreadInput(fg_thread, current_thread, true).as_bool();
             // Set focus and foreground
@@ -214,15 +214,15 @@ pub fn get_pixel_color(
     unsafe {
         match hwnd_opt {
             Some(_) => {
-                let hdc_screen = GetDC(hwnd_opt);
-                if hdc_screen.0 == null_mut() {
+                let hdc_window = GetDC(hwnd_opt);
+                if hdc_window.0 == null_mut() {
                     return Err(Error::from(GetLastError()));
                 }
 
-                let color = GetPixel(hdc_screen, x, y);
+                let color = GetPixel(hdc_window, x, y);
                 let result = color.0;
 
-                if ReleaseDC(hwnd_opt, hdc_screen) == 0 {
+                if ReleaseDC(hwnd_opt, hdc_window) == 0 {
                     return Err(Error::from(GetLastError()));
                 }
 
@@ -262,36 +262,57 @@ pub fn debug_mouse_color(
 ) -> windows::core::Result<()> {
     loop {
         unsafe {
-            if let Some(hwnd) = hwnd_opt {
-                let mut pt = POINT::default();
-                if GetCursorPos(&mut pt).is_err() {
-                    continue;
-                }
-
-                // Convert screen pos to window-client relative
-                let mut client_pt = pt;
-                if !ScreenToClient(hwnd, &mut client_pt).as_bool() {
-                    continue;
-                }
-
-                // Now client_pt is relative to hwnd
-                let x = client_pt.x;
-                let y = client_pt.y;
-
-                if x < 0 || y < 0 || x >= max_width as i32 || y >= max_height as i32 {
-                    continue;
-                }
-
-                match get_pixel_color(hwnd_opt, x, y) {
-                    Ok(color) => {
-                        println!("Mouse at ({}, {}) → Color: {}", x, y, color);
+            match hwnd_opt {
+                Some(hwnd) => {
+                    let mut pt = POINT::default();
+                    if GetCursorPos(&mut pt).is_err() {
+                        continue;
                     }
-                    Err(e) => {
-                        println!("Failed to get color at ({}, {}): {:?}", x, y, e);
+
+                    // Convert screen pos to window-client relative
+                    let mut client_pt = pt;
+                    if !ScreenToClient(hwnd, &mut client_pt).as_bool() {
+                        continue;
                     }
+
+                    // Now client_pt is relative to hwnd
+                    let x = client_pt.x;
+                    let y = client_pt.y;
+
+                    if x < 0 || y < 0 || x >= max_width as i32 || y >= max_height as i32 {
+                        continue;
+                    }
+
+                    print_color(hwnd_opt, x, y);
+                }
+                None => {
+                    let mut pt = POINT::default();
+                    if GetCursorPos(&mut pt).is_err() {
+                        continue;
+                    }
+
+                    let x = pt.x;
+                    let y = pt.y;
+
+                    if x < 0 || y < 0 {
+                        continue;
+                    }
+
+                    print_color(None, x, y);
                 }
             }
-            thread::sleep(Duration::from_millis(500));
+        }
+        thread::sleep(Duration::from_millis(500));
+    }
+}
+
+fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
+    match get_pixel_color(hwnd, x, y) {
+        Ok(color) => {
+            println!("Mouse at ({}, {}) → Color: {}", x, y, color);
+        }
+        Err(e) => {
+            println!("Failed to get color at ({}, {}): {:?}", x, y, e);
         }
     }
 }
