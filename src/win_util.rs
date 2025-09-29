@@ -140,28 +140,27 @@ pub fn get_pixel_color(
 ) -> windows::core::Result<PixelColor> {
     unsafe {
         let mut point = POINT { x, y };
-        if let Some(hwnd) = hwnd_opt {
-            if ClientToScreen(hwnd, &mut point).as_bool() == false {
-                return Err(Error::from(GetLastError()));
-            }
+        if let Some(hwnd) = hwnd_opt
+            && !ClientToScreen(hwnd, &mut point).as_bool()
+        {
+            return Err(Error::from(GetLastError()));
         }
 
         let hdc_screen = GetDC(None);
-        if hdc_screen.0 == null_mut() {
+        if hdc_screen.0.is_null() {
             return Err(Error::from(GetLastError()));
         }
 
         let color = GetPixel(hdc_screen, point.x, point.y);
-        let result = color.0;
 
         if ReleaseDC(None, hdc_screen) == 0 {
             return Err(Error::from(GetLastError()));
         }
 
-        if result == CLR_INVALID {
+        if color.0 == CLR_INVALID {
             Err(Error::from(GetLastError()))
         } else {
-            Ok(PixelColor(result))
+            Ok(PixelColor(color.0))
         }
     }
 }

@@ -36,25 +36,25 @@ fn main() -> windows::core::Result<()> {
     println!("Configuration: {:?}", cfg);
 
     if args.debug_mouse {
-        if cfg.windows.len() == 0 {
+        if cfg.windows.is_empty() {
             println!("No windows in configuration found");
             return Ok(());
         }
-        if let Some(first_window) = cfg.windows.first() {
-            if let Some(window_title) = first_window.title.as_ref().map(|x| x.as_str()) {
-                let hwnd_opt = find_window_by_title(window_title);
-                println!("Window title: {} HWND: {:?}", window_title, hwnd_opt);
-                match hwnd_opt {
-                    None => {
-                        println!("Failed to get window handle for: {}", window_title);
-                        return Ok(());
-                    }
-                    Some(hwnd) => loop {
-                        debug_mouse(hwnd);
-                        debug_mouse_color();
-                        thread::sleep(Duration::from_millis(args.debug_interval_ms));
-                    },
+        if let Some(first_window) = cfg.windows.first()
+            && let Some(window_title) = first_window.title.as_deref()
+        {
+            let hwnd_opt = find_window_by_title(window_title);
+            println!("Window title: {} HWND: {:?}", window_title, hwnd_opt);
+            match hwnd_opt {
+                None => {
+                    println!("Failed to get window handle for: {}", window_title);
+                    return Ok(());
                 }
+                Some(hwnd) => loop {
+                    debug_mouse(hwnd);
+                    debug_mouse_color();
+                    thread::sleep(Duration::from_millis(args.debug_interval_ms));
+                },
             }
         }
         return Ok(());
@@ -81,7 +81,7 @@ fn main() -> windows::core::Result<()> {
     let active_windows = cfg.windows.iter().filter(|x| x.active);
     active_windows.for_each(|win_config| {
         let mut hwnd_opt = match &win_config.title {
-            Some(title) => find_window_by_title(&title),
+            Some(title) => find_window_by_title(title),
             _ => None,
         };
         if hwnd_opt.is_none() {
@@ -96,7 +96,7 @@ fn main() -> windows::core::Result<()> {
                 win_config.window_height,
             )
             .expect("Failed to set window position");
-            if focus_window(hwnd_opt).as_bool() == false {
+            if !focus_window(hwnd_opt).as_bool() {
                 println!("Could not focus a window");
             }
         }

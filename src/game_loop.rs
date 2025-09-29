@@ -35,7 +35,7 @@ fn calculate_haste_coef(cfg: &Config) -> f32 {
     if cfg.has_enchanter {
         return (100.0 - cfg.skill_haste_percent) / 100.0;
     }
-    return 1.0;
+    1.0
 }
 
 impl Rotations<Class> for Rotation {
