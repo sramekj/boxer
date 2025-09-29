@@ -5,8 +5,8 @@ use std::thread;
 use std::time::Duration;
 use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetPixel, HGDIOBJ,
-    ReleaseDC, ScreenToClient, SelectObject,
+    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetPixel,
+    HGDIOBJ, ReleaseDC, SRCCOPY, ScreenToClient, SelectObject,
 };
 use windows::Win32::Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
@@ -149,9 +149,7 @@ pub fn get_pixel_color(
 
             // Get window size
             let mut rect = RECT::default();
-            if GetClientRect(hwnd, &mut rect).is_err() {
-                return Err(Error::from(GetLastError()));
-            }
+            GetClientRect(hwnd, &mut rect).map_err(|e| Error::from(GetLastError()))?;
 
             let width = rect.right - rect.left;
             let height = rect.bottom - rect.top;
@@ -159,10 +157,18 @@ pub fn get_pixel_color(
             let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
             let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
 
-            // Capture window contents into the memory DC
-            if PrintWindow(hwnd, hdc_mem, PRINT_WINDOW_FLAGS(0)).as_bool() == false {
-                return Err(Error::from(GetLastError()));
-            }
+            BitBlt(
+                hdc_mem,
+                0,
+                0,
+                width,
+                height,
+                Some(hdc_window),
+                0,
+                0,
+                SRCCOPY,
+            )
+            .map_err(|_| Error::from(GetLastError()))?;
 
             // Read the pixel color
             let color = GetPixel(hdc_mem, x, y);
@@ -188,7 +194,11 @@ pub fn get_pixel_color(
     }
 }
 
-pub fn debug_mouse_color(hwnd_opt: Option<HWND>) -> windows::core::Result<()> {
+pub fn debug_mouse_color(
+    hwnd_opt: Option<HWND>,
+    max_width: u32,
+    max_height: u32,
+) -> windows::core::Result<()> {
     loop {
         unsafe {
             if let Some(hwnd) = hwnd_opt {
@@ -207,7 +217,7 @@ pub fn debug_mouse_color(hwnd_opt: Option<HWND>) -> windows::core::Result<()> {
                 let x = client_pt.x;
                 let y = client_pt.y;
 
-                if x < 0 || y < 0 {
+                if x < 0 || y < 0 || x >= max_width as i32 || y >= max_height as i32 {
                     continue;
                 }
 

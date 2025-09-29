@@ -47,7 +47,7 @@ fn main() -> windows::core::Result<()> {
                     println!("Failed to find window: {}", window_title);
                     return Ok(());
                 }
-                debug_mouse_color(hwnd_opt)?;
+                debug_mouse_color(hwnd_opt, cfg.window_width, cfg.window_height)?;
             }
         }
         return Ok(());
