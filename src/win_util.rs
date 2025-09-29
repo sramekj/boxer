@@ -1,5 +1,8 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
+use std::mem::zeroed;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
 use std::thread;
@@ -8,8 +11,9 @@ use windows::Win32::Foundation::{
     ERROR_INVALID_WINDOW_HANDLE, GetLastError, HWND, LPARAM, POINT, RECT, WPARAM,
 };
 use windows::Win32::Graphics::Gdi::{
-    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetPixel,
-    HGDIOBJ, ReleaseDC, SRCCOPY, ScreenToClient, SelectObject,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC,
+    DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, GetPixel, HGDIOBJ, ReleaseDC,
+    SRCCOPY, ScreenToClient, SelectObject,
 };
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -145,63 +149,102 @@ pub fn get_pixel_color_blt(
     y: i32,
 ) -> windows::core::Result<PixelColor> {
     unsafe {
-        if let Some(hwnd) = hwnd_opt {
-            let hdc_window = GetDC(hwnd_opt);
-            if hdc_window.0 == null_mut() {
-                return Err(Error::from(GetLastError()));
-            }
+        let hwnd = hwnd_opt.ok_or_else(|| Error::from(ERROR_INVALID_WINDOW_HANDLE))?;
 
-            let hdc_mem = CreateCompatibleDC(Some(hdc_window));
-            if hdc_mem.0 == null_mut() {
-                return Err(Error::from(GetLastError()));
-            }
+        let hdc_window = GetDC(hwnd_opt);
+        if hdc_window.0 == null_mut() {
+            return Err(Error::from(GetLastError()));
+        }
 
-            // Get window size
-            let mut rect = RECT::default();
-            GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
+        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+        if hdc_mem.0 == null_mut() {
+            return Err(Error::from(GetLastError()));
+        }
 
-            let width = rect.right - rect.left;
-            let height = rect.bottom - rect.top;
+        // Get window size
+        let mut rect = RECT::default();
+        GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
 
-            let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
-            let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+        let width = rect.right - rect.left;
+        let height = rect.bottom - rect.top;
 
-            BitBlt(
-                hdc_mem,
-                0,
-                0,
-                width,
-                height,
-                Some(hdc_window),
-                0,
-                0,
-                SRCCOPY,
-            )
-            .map_err(|_| Error::from(GetLastError()))?;
+        let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+        let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
 
-            // Read the pixel color
-            let color = GetPixel(hdc_mem, x, y);
-            let result = color.0;
+        //copy to mem device context
+        BitBlt(
+            hdc_mem,
+            0,
+            0,
+            width,
+            height,
+            Some(hdc_window),
+            0,
+            0,
+            SRCCOPY,
+        )
+        .map_err(|_| Error::from(GetLastError()))?;
 
-            // Clean up
-            SelectObject(hdc_mem, old_obj);
-            if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
-                return Err(Error::from(GetLastError()));
-            }
-            if DeleteDC(hdc_mem).as_bool() == false {
-                return Err(Error::from(GetLastError()));
-            }
-            if ReleaseDC(hwnd_opt, hdc_window) == 0 {
-                return Err(Error::from(GetLastError()));
-            }
+        //get image data
+        let mut bmi: BITMAPINFO = zeroed();
+        bmi.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -height; // negative to indicate top-down DIB
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32; // We want BGRA (4 bytes per pixel)
+        bmi.bmiHeader.biCompression = BI_RGB.0;
 
-            if result == CLR_INVALID {
-                Err(Error::from(GetLastError()))
-            } else {
-                Ok(PixelColor(result))
-            }
+        let row_stride = (width * 4) as usize;
+        let image_size = row_stride * (height as usize);
+        let mut buffer = vec![0u8; image_size];
+
+        let res = GetDIBits(
+            hdc_mem,
+            hbitmap,
+            0,
+            height as u32,
+            Some(buffer.as_mut_ptr() as *mut _),
+            &mut bmi,
+            DIB_RGB_COLORS,
+        );
+
+        if res == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+
+        //DEBUG: write raw bytes to file
+        if cfg!(debug_assertions) {
+            let mut f = File::create("capture.raw")?;
+            f.write_all(&buffer)?;
+        }
+
+        // Calculate the pixel index
+        let px = x.clamp(0, width - 1) as usize;
+        let py = y.clamp(0, height - 1) as usize;
+
+        let index = py * row_stride + px * 4;
+        let blue = buffer[index];
+        let green = buffer[index + 1];
+        let red = buffer[index + 2];
+
+        let result = rgb_to_colorref(red, green, blue);
+
+        // Clean up
+        SelectObject(hdc_mem, old_obj);
+        if DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() == false {
+            return Err(Error::from(GetLastError()));
+        }
+        if DeleteDC(hdc_mem).as_bool() == false {
+            return Err(Error::from(GetLastError()));
+        }
+        if ReleaseDC(hwnd_opt, hdc_window) == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+
+        if result == CLR_INVALID {
+            Err(Error::from(GetLastError()))
         } else {
-            Err(Error::from(ERROR_INVALID_WINDOW_HANDLE))
+            Ok(PixelColor(result))
         }
     }
 }
@@ -306,8 +349,12 @@ pub fn debug_mouse_color(
     }
 }
 
+fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
+    (red as u32) | ((green as u32) << 8) | ((blue as u32) << 16)
+}
+
 fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
-    match get_pixel_color(hwnd, x, y) {
+    match get_pixel_color_blt(hwnd, x, y) {
         Ok(color) => {
             println!("Mouse at ({}, {}) → Color: {}", x, y, color);
         }
