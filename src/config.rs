@@ -11,8 +11,11 @@ use windows::Win32::Foundation::HWND;
 pub struct Args {
     #[arg(short = 'd', long)]
     pub debug: bool,
-    #[arg(short = 'm', long = "debug-mouse", default_value_t = true)]
+    //#[arg(short = 'm', long = "debug-mouse", default_value_t = true)]
+    #[arg(short = 'm', long = "debug-mouse")]
     pub debug_mouse: bool,
+    #[arg(long = "debug-interval", default_value = "1000")]
+    pub debug_interval_ms: u64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -27,35 +30,43 @@ pub struct WindowConfig {
     pub title: Option<String>,
     #[serde(default, with = "hex_hwnd")]
     pub hwnd: Option<HWND>,
+    pub window_width: u32,
+    pub window_height: u32,
+    pub position_x: u32,
+    pub position_y: u32,
     pub class: Class,
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
-    pub number_of_windows: u32,
-    pub window_width: u32,
-    pub window_height: u32,
     pub has_enchanter: bool,
     pub skill_haste_percent: f32,
+    pub number_of_active_windows: u32,
     pub windows: Vec<WindowConfig>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
-            number_of_windows: 1,
-            window_width: 1280,
-            window_height: 720,
+            number_of_active_windows: 1,
             has_enchanter: true,
             skill_haste_percent: 10.0,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),
                     hwnd: None,
+                    window_width: 1280,
+                    window_height: 720,
+                    position_x: 3000,
+                    position_y: 0,
                     class: Class::Enchanter,
                 },
                 WindowConfig {
                     title: Some("[#] [Steam2] Nevergrind [#]".into()),
                     hwnd: None,
+                    window_width: 1280,
+                    window_height: 720,
+                    position_x: 1300,
+                    position_y: 300,
                     class: Class::Warlock,
                 },
             ],

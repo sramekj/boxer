@@ -4,7 +4,7 @@ mod win_util;
 
 use crate::config::{Args, load_config};
 use crate::win_util::{
-    debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
+    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
 };
 use clap::Parser;
 use std::sync::Arc;
@@ -43,11 +43,17 @@ fn main() -> windows::core::Result<()> {
             if let Some(window_title) = first_window.title.as_ref().map(|x| x.as_str()) {
                 let hwnd_opt = find_window_by_title(window_title);
                 println!("Window title: {} HWND: {:?}", window_title, hwnd_opt);
-                if hwnd_opt.is_none() {
-                    println!("Failed to get window handle for: {}", window_title);
-                    return Ok(());
+                match hwnd_opt {
+                    None => {
+                        println!("Failed to get window handle for: {}", window_title);
+                        return Ok(());
+                    }
+                    Some(hwnd) => loop {
+                        debug_mouse(hwnd);
+                        debug_mouse_color();
+                        thread::sleep(Duration::from_millis(args.debug_interval_ms));
+                    },
                 }
-                debug_mouse_color(hwnd_opt, cfg.window_width, cfg.window_height)?;
             }
         }
         return Ok(());

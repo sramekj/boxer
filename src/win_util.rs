@@ -298,54 +298,18 @@ pub fn get_pixel_color(
     }
 }
 
-pub fn debug_mouse_color(
-    hwnd_opt: Option<HWND>,
-    max_width: u32,
-    max_height: u32,
-) -> windows::core::Result<()> {
-    loop {
-        unsafe {
-            match hwnd_opt {
-                Some(hwnd) => {
-                    let mut pt = POINT::default();
-                    if GetCursorPos(&mut pt).is_err() {
-                        continue;
-                    }
-
-                    // Convert screen pos to window-client relative
-                    let mut client_pt = pt;
-                    if !ScreenToClient(hwnd, &mut client_pt).as_bool() {
-                        continue;
-                    }
-
-                    // Now client_pt is relative to hwnd
-                    let x = client_pt.x;
-                    let y = client_pt.y;
-
-                    if x < 0 || y < 0 || x >= max_width as i32 || y >= max_height as i32 {
-                        continue;
-                    }
-
-                    print_color(hwnd_opt, x, y);
-                }
-                None => {
-                    let mut pt = POINT::default();
-                    if GetCursorPos(&mut pt).is_err() {
-                        continue;
-                    }
-
-                    let x = pt.x;
-                    let y = pt.y;
-
-                    if x < 0 || y < 0 {
-                        continue;
-                    }
-
-                    print_color(None, x, y);
-                }
-            }
+pub fn debug_mouse_color() {
+    unsafe {
+        let mut pt = POINT::default();
+        if GetCursorPos(&mut pt).is_err() {
+            return;
         }
-        thread::sleep(Duration::from_millis(500));
+        let x = pt.x;
+        let y = pt.y;
+        if x < 0 || y < 0 {
+            return;
+        }
+        print_color(None, x, y);
     }
 }
 
@@ -354,13 +318,31 @@ fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
 }
 
 fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
-    match get_pixel_color_blt(hwnd, x, y) {
+    match get_pixel_color(hwnd, x, y) {
         Ok(color) => {
-            println!("Mouse at ({}, {}) → Color: {}", x, y, color);
+            println!("Color at ({}, {}): {}", x, y, color);
         }
         Err(e) => {
             println!("Failed to get color at ({}, {}): {:?}", x, y, e);
         }
+    }
+}
+
+pub fn debug_mouse(hwnd: HWND) {
+    unsafe {
+        let mut pt = POINT::default();
+        if GetCursorPos(&mut pt).is_err() {
+            return;
+        }
+        let abs_x = pt.x;
+        let abs_y = pt.x;
+        if !ScreenToClient(hwnd, &mut pt).as_bool() {
+            return;
+        }
+        println!(
+            "Mouse at: screen[{}, {}] window[{}, {}]",
+            abs_x, abs_y, pt.x, pt.y
+        );
     }
 }
 
