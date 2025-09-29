@@ -5,8 +5,6 @@ use std::io::Write;
 use std::mem::zeroed;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
-use std::thread;
-use std::time::Duration;
 use windows::Win32::Foundation::{
     ERROR_INVALID_WINDOW_HANDLE, GetLastError, HWND, LPARAM, POINT, RECT, WPARAM,
 };
@@ -143,6 +141,9 @@ impl Display for PixelColor {
 
 const CLR_INVALID: u32 = 0xFFFFFFFF;
 
+fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
+    (red as u32) | ((green as u32) << 8) | ((blue as u32) << 16)
+}
 pub fn get_pixel_color_blt(
     hwnd_opt: Option<HWND>,
     x: i32,
@@ -311,10 +312,6 @@ pub fn debug_mouse_color() {
         }
         print_color(None, x, y);
     }
-}
-
-fn rgb_to_colorref(red: u8, green: u8, blue: u8) -> u32 {
-    (red as u32) | ((green as u32) << 8) | ((blue as u32) << 16)
 }
 
 fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
