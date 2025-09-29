@@ -5,6 +5,7 @@ mod win_util;
 use crate::config::{Args, load_config};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
+    set_window,
 };
 use clap::Parser;
 use std::sync::Arc;
@@ -77,8 +78,31 @@ fn main() -> windows::core::Result<()> {
 
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
 
+    let active_windows = cfg.windows.iter().filter(|x| x.active);
+    active_windows.for_each(|win_config| {
+        let mut hwnd_opt = match &win_config.title {
+            Some(title) => find_window_by_title(&title),
+            _ => None,
+        };
+        if hwnd_opt.is_none() {
+            hwnd_opt = win_config.hwnd
+        }
+        if let Some(hwnd) = hwnd_opt {
+            set_window(
+                hwnd,
+                win_config.position_x,
+                win_config.position_y,
+                win_config.window_width,
+                win_config.window_height,
+            )
+            .expect("Failed to set window position");
+            if focus_window(hwnd_opt).as_bool() == false {
+                println!("Could not focus a window");
+            }
+        }
+    });
+
     let worker = thread::spawn(move || {
-        //debug....
         let xxx = find_window_by_title("[#] Nevergrind [#]");
         println!("HWND: {:?}", xxx);
 
