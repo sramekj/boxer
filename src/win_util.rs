@@ -10,8 +10,9 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, FindWindowW, GetCursorPos, GetForegroundWindow, GetWindowTextLengthW,
-    GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, PostMessageW, SW_RESTORE,
-    SetForegroundWindow, ShowWindow, WM_KEYDOWN, WM_KEYUP,
+    GetWindowTextW, GetWindowThreadProcessId, HWND_TOP, IsIconic, IsWindowVisible, PostMessageW,
+    SW_RESTORE, SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow, SetWindowPos, ShowWindow,
+    WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
@@ -206,6 +207,26 @@ pub fn debug_mouse(hwnd: HWND) {
             "Mouse at: screen[{}, {}] window[{}, {}]\t",
             abs_x, abs_y, pt.x, pt.y
         );
+    }
+}
+
+pub fn set_window(
+    hwnd: HWND,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+) -> windows::core::Result<()> {
+    unsafe {
+        SetWindowPos(
+            hwnd,
+            Some(HWND_TOP),
+            x,
+            y,
+            width,
+            height,
+            SWP_NOZORDER | SWP_SHOWWINDOW,
+        )
     }
 }
 
