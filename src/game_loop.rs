@@ -1,5 +1,5 @@
 use crate::config::{Class, Config};
-use windows::Win32::UI::Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_2, VK_3, VK_4, VK_9};
+use windows::Win32::UI::Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_0, VK_2, VK_3, VK_4, VK_9};
 
 #[derive(Debug)]
 enum Phase {
@@ -55,6 +55,15 @@ impl Rotations<Class> for Rotation {
                         is_buff: true,
                     },
                     Skill {
+                        name: "Phase Blade".to_string(),
+                        key: VK_0,
+                        cast_time: 2.0 * calculate_haste_coef(cfg),
+                        has_gcd: false,
+                        cooldown: 0.0,
+                        buff_duration: Some(600.0),
+                        is_buff: true,
+                    },
+                    Skill {
                         name: "Color Shift".to_string(),
                         key: VK_2,
                         cast_time: 1.5 * calculate_haste_coef(cfg),
@@ -75,7 +84,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Mind Blitz".to_string(),
                         key: VK_4,
-                        cast_time: 2.0 * calculate_haste_coef(cfg),
+                        cast_time: 2.5 * calculate_haste_coef(cfg),
                         has_gcd: false,
                         cooldown: 0.0,
                         buff_duration: None,
