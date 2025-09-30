@@ -42,6 +42,7 @@ pub struct Config {
     pub skill_haste_percent: f32,
     pub frenzy_duration: f32,
     pub bulwark_duration: f32,
+    pub sync_interval_ms: u64,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -51,6 +52,7 @@ impl Default for Config {
             skill_haste_percent: 10.0,
             frenzy_duration: 20.0,
             bulwark_duration: 10.0,
+            sync_interval_ms: 500,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),

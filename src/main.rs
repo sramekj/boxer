@@ -13,7 +13,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use windows::Win32::UI::Input::KeyboardAndMouse::VK_I;
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    VK_I, VK_OEM_MINUS, VK_OEM_NEC_EQUAL, VK_OEM_PLUS, VK_X,
+};
 use windows::{
     Win32::Foundation::HWND,
     Win32::UI::Input::KeyboardAndMouse::{
@@ -33,8 +35,6 @@ fn main() -> windows::core::Result<()> {
     }
 
     let cfg = load_config();
-
-    println!("Configuration: {:?}", cfg);
 
     if args.debug_mouse {
         if cfg.windows.is_empty() {
@@ -104,7 +104,7 @@ fn main() -> windows::core::Result<()> {
     });
 
     let worker = thread::spawn(move || {
-        let xxx = find_window_by_title("[#] Nevergrind [#]");
+        let xxx = find_window_by_title("Untitled - Notepad");
         println!("HWND: {:?}", xxx);
 
         while running_clone.load(Ordering::SeqCst) {
@@ -114,9 +114,9 @@ fn main() -> windows::core::Result<()> {
                 println!("Chilling...");
 
                 let _ = focus_window(xxx);
-                send_key_vk(VK_I).expect("Failed to send key to window");
+                send_key_vk(VK_OEM_PLUS).expect("Failed to send key to window");
             }
-            thread::sleep(Duration::from_millis(1000));
+            thread::sleep(Duration::from_millis(cfg.sync_interval_ms));
         }
     });
 

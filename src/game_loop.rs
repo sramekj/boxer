@@ -1,6 +1,6 @@
 use crate::config::{Class, Config};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_NEC_EQUAL,
+    VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_PLUS,
 };
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -41,7 +41,7 @@ impl Skill {
         GCD
     }
 
-    pub fn can_be_used(&self, state: CharState) -> bool {
+    pub fn can_cast(&self, state: CharState) -> bool {
         match state {
             CharState::InTown | CharState::Death => false,
             CharState::InDungeon => self.skill_type == SkillType::Buff,
@@ -76,7 +76,7 @@ impl Rotations<Class> for Rotation {
                 skills: vec![
                     Skill {
                         name: "Intrepid Shout".to_string(),
-                        key: VK_OEM_NEC_EQUAL,
+                        key: VK_OEM_PLUS,
                         cast_time: 0.0,
                         cooldown: 0.0,
                         buff_duration: Some(240.0),
@@ -152,7 +152,7 @@ impl Rotations<Class> for Rotation {
                     },
                     Skill {
                         name: "Profane Spirit".to_string(),
-                        key: VK_OEM_NEC_EQUAL,
+                        key: VK_OEM_PLUS,
                         cast_time: 2.5 * calculate_haste_coef(cfg),
                         cooldown: 0.0,
                         buff_duration: Some(900.0),
