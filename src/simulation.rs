@@ -522,7 +522,7 @@ mod tests {
 
         let rotation = Rotation::get_rotation(Class::Enchanter, &cfg);
 
-        let simulation = SimulationState::new(
+        let mut simulation = SimulationState::new(
             cfg.sync_interval_ms,
             cfg.windows.first().unwrap().clone(),
             rotation,
