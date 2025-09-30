@@ -1,5 +1,4 @@
 use crate::config::{Class, Config, WindowConfig};
-use crate::util::CyclicIterator;
 use crate::win_util::{focus_window, get_pixel_color, send_key_vk};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -87,7 +86,7 @@ impl StateChecker for WindowObj {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Skill {
     pub name: String,
     pub key: VIRTUAL_KEY,
@@ -408,10 +407,12 @@ impl SkillTracker {
             SkillType::Debuff => !self.has_debuff_applied(skill),
             SkillType::Attack => true,
         };
-        if result {
-            println!("Buff or debuff {} expired", skill.name);
-        } else {
-            println!("Buff or debuff {} is still applied", skill.name);
+        if skill.skill_type != SkillType::Attack {
+            if result {
+                println!("Buff or debuff {} expired", skill.name);
+            } else {
+                println!("Buff or debuff {} is still applied", skill.name);
+            }
         }
         result
     }
@@ -478,31 +479,43 @@ impl SimulationState {
     }
 
     pub fn run(&mut self) {
-        let mut rotation_iter = CyclicIterator::new(&self.rotation.skills);
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
         while is_running.load(Ordering::SeqCst) {
+            let mut casted = false;
             let state = self.state_checker.get_state();
             match state {
                 CharState::InTown => {
                     // do nothing
                 }
                 _ => {
-                    // try to cast
-                    let current_rotation_skill = rotation_iter.next().unwrap();
-                    if self
-                        .skill_tracker
-                        .should_cast(current_rotation_skill, state)
-                    {
-                        self.skill_caster.cast(current_rotation_skill);
-                        self.skill_tracker.track_cast(current_rotation_skill);
-                    }
+                    // try to cast - go through all skills, they are sorted by priority
+                    self.rotation.skills.clone().into_iter().for_each(|skill| {
+                        // if we can cast (or buff/debuff is down)
+                        if self.skill_tracker.should_cast(&skill, state) {
+                            // try to cast
+                            self.skill_caster.cast(&skill);
+                            if skill.cast_time > 0.0 {
+                                //let's wait for a cast time duration
+                                let ms = (skill.cast_time * 1000.0) as u64;
+                                println!("Waiting {} seconds", skill.cast_time);
+                                thread::sleep(Duration::from_millis(ms));
+                            }
+                            // and track the cooldown
+                            self.skill_tracker.track_cast(&skill);
+                            casted = true;
+                        }
+                    });
                     if state == CharState::Looting {
                         // TODO: implement looting
                     }
                 }
             }
-            thread::sleep(Duration::from_millis(self.sync_interval_ms));
+            if !casted {
+                println!("Sync sleep for {} ms", self.sync_interval_ms);
+                thread::sleep(Duration::from_millis(self.sync_interval_ms));
+            }
+            println!("Simulation cycle finished")
         }
     }
 

@@ -1,6 +1,5 @@
 pub mod config;
 mod simulation;
-mod util;
 mod win_util;
 
 use crate::config::{Args, Config, WindowConfig, load_config};
