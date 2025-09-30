@@ -1,7 +1,11 @@
 use crate::config::{Class, Config, WindowConfig};
+use crate::util::CyclicIterator;
 use crate::win_util::{focus_window, get_pixel_color, send_key_vk};
 use std::collections::HashMap;
-use std::time::Instant;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::time::{Duration, Instant};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_PLUS,
@@ -11,9 +15,9 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 pub enum CharState {
     InTown,
     InDungeon,
-    InFight,
+    Fighting,
     Looting,
-    Death,
+    Dead,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -66,7 +70,7 @@ impl SkillCaster for WindowObj {
 impl StateChecker for DebugObj {
     fn get_state(&self) -> CharState {
         println!("Getting state");
-        let state = CharState::InFight;
+        let state = CharState::Fighting;
         println!("Setting state to {:?}", state);
         state
     }
@@ -77,7 +81,7 @@ impl StateChecker for WindowObj {
         println!("Getting state");
         //TODO.....
         let x = get_pixel_color(self.hwnd, 100, 100);
-        let state = CharState::InFight;
+        let state = CharState::Fighting;
         println!("Setting state to {:?}", state);
         state
     }
@@ -105,9 +109,9 @@ impl Skill {
 
     pub fn can_cast(&self, state: CharState) -> bool {
         match state {
-            CharState::InTown | CharState::Death => false,
+            CharState::InTown | CharState::Dead => false,
             CharState::InDungeon => self.skill_type == SkillType::Buff,
-            CharState::InFight | CharState::Looting => true,
+            CharState::Fighting | CharState::Looting => true,
         }
     }
 }
@@ -384,18 +388,32 @@ impl SkillTracker {
     }
 
     pub fn can_cast(&self, skill: &Skill, state: CharState) -> bool {
-        !self.is_on_cooldown(skill) && skill.can_cast(state)
+        let result = !self.is_on_cooldown(skill) && skill.can_cast(state);
+        println!(
+            "Checking ability to cast: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
+            skill.name,
+            self.is_on_cooldown(skill),
+            skill.can_cast(state),
+            result
+        );
+        result
     }
 
     pub fn should_cast(&self, skill: &Skill, state: CharState) -> bool {
         if !self.can_cast(skill, state) {
             return false;
         }
-        match skill.skill_type {
+        let result = match skill.skill_type {
             SkillType::Buff => !self.has_buff_applied(skill),
             SkillType::Debuff => !self.has_debuff_applied(skill),
             SkillType::Attack => true,
+        };
+        if result {
+            println!("Buff or debuff {} expired", skill.name);
+        } else {
+            println!("Buff or debuff {} is still applied", skill.name);
         }
+        result
     }
 
     pub fn has_buff_applied(&self, skill: &Skill) -> bool {
@@ -428,37 +446,75 @@ impl SkillTracker {
 }
 
 pub struct SimulationState {
+    pub is_running: Arc<AtomicBool>,
+    pub sync_interval_ms: u64,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub state: CharState,
     pub skill_tracker: SkillTracker,
     pub skill_caster: Box<dyn SkillCaster>,
+    pub state_checker: Box<dyn StateChecker>,
 }
 
 impl SimulationState {
     pub fn new(
+        sync_interval_ms: u64,
         window_config: WindowConfig,
         rotation: Rotation,
         skill_tracker: SkillTracker,
         skill_caster: Box<dyn SkillCaster>,
+        state_checker: Box<dyn StateChecker>,
     ) -> Self {
         SimulationState {
+            is_running: Arc::new(AtomicBool::new(false)),
+            sync_interval_ms,
             window_config,
             rotation,
             state: CharState::InTown,
             skill_tracker,
             skill_caster,
+            state_checker,
         }
     }
 
-    pub fn run(&self) {}
+    pub fn run(&mut self) {
+        let mut rotation_iter = CyclicIterator::new(&self.rotation.skills);
+        self.is_running.store(true, Ordering::SeqCst);
+        let is_running = self.is_running.clone();
+        while is_running.load(Ordering::SeqCst) {
+            let state = self.state_checker.get_state();
+            match state {
+                CharState::InTown => {
+                    // do nothing
+                }
+                _ => {
+                    // try to cast
+                    let current_rotation_skill = rotation_iter.next().unwrap();
+                    if self
+                        .skill_tracker
+                        .should_cast(current_rotation_skill, state)
+                    {
+                        self.skill_caster.cast(current_rotation_skill);
+                        self.skill_tracker.track_cast(current_rotation_skill);
+                    }
+                    if state == CharState::Looting {
+                        // TODO: implement looting
+                    }
+                }
+            }
+            thread::sleep(Duration::from_millis(self.sync_interval_ms));
+        }
+    }
+
+    pub fn stop(&self) {
+        self.is_running.store(false, Ordering::SeqCst);
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::config::Class;
-    use crate::simulation::{DebugObj, Rotation, SimulationState, SkillTracker};
+    use crate::config::{Class, Config};
+    use crate::simulation::{DebugObj, Rotation, Rotations, SimulationState, SkillTracker};
 
     #[test]
     fn test_simulation() {
@@ -467,9 +523,11 @@ mod tests {
         let rotation = Rotation::get_rotation(Class::Enchanter, &cfg);
 
         let simulation = SimulationState::new(
+            cfg.sync_interval_ms,
             cfg.windows.first().unwrap().clone(),
             rotation,
             SkillTracker::new(),
+            Box::new(DebugObj::new()),
             Box::new(DebugObj::new()),
         );
 
