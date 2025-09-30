@@ -1,7 +1,9 @@
 use crate::config::{Class, Config, WindowConfig};
+use crate::win_util::{focus_window, send_key_vk};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::time::Instant;
+use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_PLUS,
 };
@@ -23,6 +25,26 @@ pub enum SkillType {
 }
 
 const GCD: f32 = 2.5;
+
+trait SkillCaster {
+    fn cast(&self, skill: &Skill, hwnd: Option<HWND>) -> bool;
+}
+
+struct DebugCaster {}
+impl SkillCaster for DebugCaster {
+    fn cast(&self, skill: &Skill, _: Option<HWND>) -> bool {
+        println!("Casting '{}'", skill.name);
+        true
+    }
+}
+
+struct WinCaster {}
+impl SkillCaster for WinCaster {
+    fn cast(&self, skill: &Skill, hwnd: Option<HWND>) -> bool {
+        println!("Casting '{}'", skill.name);
+        focus_window(hwnd).as_bool() && send_key_vk(skill.key).is_ok()
+    }
+}
 
 #[derive(Debug)]
 pub struct Skill {
