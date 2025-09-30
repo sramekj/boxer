@@ -377,7 +377,7 @@ impl SkillTracker {
                 let now = Instant::now();
                 let diff = now - *last_cast;
                 let cooldown = if skill.has_gcd() {
-                    skill.cooldown.min(skill.get_gcd())
+                    skill.cooldown.max(skill.get_gcd())
                 } else {
                     skill.cooldown
                 };
