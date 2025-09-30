@@ -32,7 +32,11 @@ trait Rotations<T> {
 }
 
 fn calculate_haste_coef(cfg: &Config) -> f32 {
-    if cfg.has_enchanter {
+    let has_enchanter = cfg
+        .windows
+        .iter()
+        .any(|w| w.class == Class::Enchanter && w.active);
+    if has_enchanter {
         return (100.0 - cfg.skill_haste_percent) / 100.0;
     }
     1.0

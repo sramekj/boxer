@@ -18,7 +18,7 @@ pub struct Args {
     pub debug_interval_ms: u64,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
 pub enum Class {
     Enchanter,
     Warlock,
@@ -39,7 +39,6 @@ pub struct WindowConfig {
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
-    pub has_enchanter: bool,
     pub skill_haste_percent: f32,
     pub windows: Vec<WindowConfig>,
 }
@@ -47,7 +46,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            has_enchanter: true,
             skill_haste_percent: 10.0,
             windows: vec![
                 WindowConfig {
@@ -55,7 +53,7 @@ impl Default for Config {
                     hwnd: None,
                     window_width: 1280,
                     window_height: 720,
-                    position_x: 3000,
+                    position_x: 2560,
                     position_y: 0,
                     active: true,
                     class: Class::Enchanter,
@@ -65,10 +63,20 @@ impl Default for Config {
                     hwnd: None,
                     window_width: 1280,
                     window_height: 720,
-                    position_x: 1300,
-                    position_y: 300,
+                    position_x: 1280,
+                    position_y: 0,
                     active: false,
                     class: Class::Warlock,
+                },
+                WindowConfig {
+                    title: Some("Nevergrind".into()),
+                    hwnd: None,
+                    window_width: 1280,
+                    window_height: 720,
+                    position_x: 0,
+                    position_y: 0,
+                    active: false,
+                    class: Class::Warrior,
                 },
             ],
         }
