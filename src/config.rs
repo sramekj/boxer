@@ -11,7 +11,6 @@ use windows::Win32::Foundation::HWND;
 pub struct Args {
     #[arg(short = 'd', long)]
     pub debug: bool,
-    //#[arg(short = 'm', long = "debug-mouse", default_value_t = true)]
     #[arg(short = 'm', long = "debug-mouse")]
     pub debug_mouse: bool,
     #[arg(long = "debug-interval", default_value = "1000")]
@@ -25,7 +24,7 @@ pub enum Class {
     Warrior,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct WindowConfig {
     pub title: Option<String>,
     #[serde(default, with = "hex_hwnd")]
@@ -37,7 +36,11 @@ pub struct WindowConfig {
     pub active: bool,
     pub class: Class,
 }
-#[derive(Deserialize, Serialize, Debug)]
+
+unsafe impl Send for WindowConfig {}
+unsafe impl Sync for WindowConfig {}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Config {
     pub skill_haste_percent: f32,
     pub frenzy_duration: f32,

@@ -27,7 +27,7 @@ impl<'a, T> Iterator for CyclicIterator<'a, T> {
 mod tests {
     use super::*;
     use crate::config::{Class, Config};
-    use crate::game_loop::{Rotation, Rotations};
+    use crate::simulation::{Rotation, Rotations};
 
     #[test]
     fn test_cyclic_on_vector() {

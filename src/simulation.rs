@@ -1,4 +1,7 @@
-use crate::config::{Class, Config};
+use crate::config::{Class, Config, WindowConfig};
+use std::cmp::min;
+use std::collections::HashMap;
+use std::time::Instant;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_PLUS,
 };
@@ -257,4 +260,116 @@ impl Rotations<Class> for Rotation {
             },
         }
     }
+}
+
+#[derive(Debug)]
+pub struct SimulationState {
+    pub window_config: WindowConfig,
+    pub rotation: Rotation,
+    pub state: CharState,
+    pub skill_tracker: SkillTracker,
+}
+
+#[derive(Debug)]
+pub struct SkillTracker {
+    last_cast: HashMap<String, Instant>,
+    buff_tracker: HashMap<String, Instant>,
+    debuff_tracker: HashMap<String, Instant>,
+}
+
+impl SkillTracker {
+    pub fn track_cast(&mut self, skill: &Skill) {
+        let now = Instant::now();
+        if let Some(last_cast) = self.last_cast.get(&skill.name) {
+            let diff = now - *last_cast;
+            if diff.as_secs_f32() <= skill.cooldown {
+                println!(
+                    "WARN: trying to cast {} which should still be on a cooldown",
+                    skill.name
+                );
+                return;
+            }
+            self.track_inner(skill, now);
+        } else {
+            self.track_inner(skill, now);
+        }
+    }
+
+    fn track_inner(&mut self, skill: &Skill, now: Instant) {
+        self.last_cast.insert(skill.name.clone(), now);
+        match skill.skill_type {
+            SkillType::Buff => {
+                self.buff_tracker.insert(skill.name.clone(), now);
+            }
+            SkillType::Debuff => {
+                self.debuff_tracker.insert(skill.name.clone(), now);
+            }
+            _ => {}
+        }
+    }
+
+    pub fn is_on_cooldown(&self, skill: &Skill) -> bool {
+        match self.last_cast.get(&skill.name) {
+            None => false,
+            Some(last_cast) => {
+                let now = Instant::now();
+                let diff = now - *last_cast;
+                let cooldown = if skill.has_gcd() {
+                    skill.cooldown.min(skill.get_gcd())
+                } else {
+                    skill.cooldown
+                };
+                diff.as_secs_f32() > cooldown
+            }
+        }
+    }
+
+    pub fn can_cast(&self, skill: &Skill, state: CharState) -> bool {
+        !self.is_on_cooldown(skill) && skill.can_cast(state)
+    }
+
+    pub fn should_cast(&self, skill: &Skill, state: CharState) -> bool {
+        if !self.can_cast(skill, state) {
+            return false;
+        }
+        match skill.skill_type {
+            SkillType::Buff => !self.has_buff_applied(skill),
+            SkillType::Debuff => !self.has_debuff_applied(skill),
+            SkillType::Attack => true,
+        }
+    }
+
+    pub fn has_buff_applied(&self, skill: &Skill) -> bool {
+        let now = Instant::now();
+        if let Some(last_cast) = self.buff_tracker.get(&skill.name) {
+            let diff = now - *last_cast;
+            if let Some(buff_duration) = skill.buff_duration {
+                diff.as_secs_f32() < buff_duration
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn has_debuff_applied(&self, skill: &Skill) -> bool {
+        let now = Instant::now();
+        if let Some(last_cast) = self.debuff_tracker.get(&skill.name) {
+            let diff = now - *last_cast;
+            if let Some(debuff_duration) = skill.debuff_duration {
+                diff.as_secs_f32() < debuff_duration
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {}
 }

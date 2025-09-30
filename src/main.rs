@@ -1,21 +1,18 @@
 pub mod config;
-mod game_loop;
+mod simulation;
 mod util;
 mod win_util;
 
-use crate::config::{Args, load_config};
+use crate::config::{Args, Config, WindowConfig, load_config};
 use crate::win_util::{
-    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, send_key_vk,
-    set_window,
+    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, set_window,
 };
 use clap::Parser;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
+use std::thread::JoinHandle;
 use std::time::Duration;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    VK_I, VK_OEM_MINUS, VK_OEM_NEC_EQUAL, VK_OEM_PLUS, VK_X,
-};
 use windows::{
     Win32::Foundation::HWND,
     Win32::UI::Input::KeyboardAndMouse::{
@@ -103,22 +100,14 @@ fn main() -> windows::core::Result<()> {
         }
     });
 
-    let worker = thread::spawn(move || {
-        let xxx = find_window_by_title("Untitled - Notepad");
-        println!("HWND: {:?}", xxx);
-
-        while running_clone.load(Ordering::SeqCst) {
-            if enabled_clone.load(Ordering::SeqCst) {
-                //TODO... just testing now
-
-                println!("Chilling...");
-
-                let _ = focus_window(xxx);
-                send_key_vk(VK_OEM_PLUS).expect("Failed to send key to window");
-            }
-            thread::sleep(Duration::from_millis(cfg.sync_interval_ms));
-        }
-    });
+    //////////////////
+    let worker = spawn_window_worker(
+        running_clone,
+        enabled_clone,
+        cfg.clone(),
+        cfg.windows.first().unwrap(),
+        || {},
+    );
 
     let mut msg = MSG::default();
     unsafe {
@@ -150,4 +139,21 @@ fn main() -> windows::core::Result<()> {
     let _ = worker.join();
 
     Ok(())
+}
+
+fn spawn_window_worker(
+    running: Arc<AtomicBool>,
+    enabled: Arc<AtomicBool>,
+    config: Config,
+    window_config: &WindowConfig,
+    worker: fn() -> (),
+) -> JoinHandle<()> {
+    thread::spawn(move || {
+        while running.load(Ordering::SeqCst) {
+            if enabled.load(Ordering::SeqCst) {
+                worker();
+            }
+            thread::sleep(Duration::from_millis(config.sync_interval_ms));
+        }
+    })
 }
