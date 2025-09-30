@@ -4,7 +4,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-enum CharState {
+pub enum CharState {
     InTown,
     InDungeon,
     InFight,
@@ -13,7 +13,7 @@ enum CharState {
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-enum SkillType {
+pub enum SkillType {
     Attack,
     Buff,
     Debuff,
@@ -23,25 +23,25 @@ const GCD: f32 = 2.5;
 
 #[derive(Debug)]
 pub struct Skill {
-    name: String,
-    key: VIRTUAL_KEY,
-    cast_time: f32,
-    cooldown: f32,
-    buff_duration: Option<f32>,
-    debuff_duration: Option<f32>,
-    skill_type: SkillType,
+    pub name: String,
+    pub key: VIRTUAL_KEY,
+    pub cast_time: f32,
+    pub cooldown: f32,
+    pub buff_duration: Option<f32>,
+    pub debuff_duration: Option<f32>,
+    pub skill_type: SkillType,
 }
 
 impl Skill {
-    fn has_gcd(&self) -> bool {
+    pub fn has_gcd(&self) -> bool {
         self.cast_time == 0.0
     }
 
-    fn get_gcd(&self) -> f32 {
+    pub fn get_gcd(&self) -> f32 {
         GCD
     }
 
-    fn can_be_used(&self, state: CharState) -> bool {
+    pub fn can_be_used(&self, state: CharState) -> bool {
         match state {
             CharState::InTown | CharState::Death => false,
             CharState::InDungeon => self.skill_type == SkillType::Buff,
@@ -51,11 +51,11 @@ impl Skill {
 }
 
 #[derive(Debug)]
-struct Rotation {
-    skills: Vec<Skill>,
+pub struct Rotation {
+    pub skills: Vec<Skill>,
 }
 
-trait Rotations<T> {
+pub trait Rotations<T> {
     fn get_rotation(input: &T, cfg: &Config) -> Rotation;
 }
 
