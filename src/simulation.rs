@@ -1,6 +1,5 @@
 use crate::config::{Class, Config, WindowConfig};
-use crate::win_util::{focus_window, send_key_vk};
-use std::cmp::min;
+use crate::win_util::{focus_window, get_pixel_color, send_key_vk};
 use std::collections::HashMap;
 use std::time::Instant;
 use windows::Win32::Foundation::HWND;
@@ -26,23 +25,61 @@ pub enum SkillType {
 
 const GCD: f32 = 2.5;
 
-trait SkillCaster {
-    fn cast(&self, skill: &Skill, hwnd: Option<HWND>) -> bool;
+pub trait StateChecker {
+    fn get_state(&self) -> CharState;
 }
 
-struct DebugCaster {}
-impl SkillCaster for DebugCaster {
-    fn cast(&self, skill: &Skill, _: Option<HWND>) -> bool {
+pub trait SkillCaster {
+    fn cast(&self, skill: &Skill) -> bool;
+}
+
+pub struct DebugObj {}
+impl DebugObj {
+    pub fn new() -> DebugObj {
+        DebugObj {}
+    }
+}
+pub struct WindowObj {
+    hwnd: Option<HWND>,
+}
+
+impl WindowObj {
+    pub fn new(hwnd: Option<HWND>) -> WindowObj {
+        Self { hwnd }
+    }
+}
+
+impl SkillCaster for DebugObj {
+    fn cast(&self, skill: &Skill) -> bool {
         println!("Casting '{}'", skill.name);
         true
     }
 }
 
-struct WinCaster {}
-impl SkillCaster for WinCaster {
-    fn cast(&self, skill: &Skill, hwnd: Option<HWND>) -> bool {
+impl SkillCaster for WindowObj {
+    fn cast(&self, skill: &Skill) -> bool {
         println!("Casting '{}'", skill.name);
-        focus_window(hwnd).as_bool() && send_key_vk(skill.key).is_ok()
+        focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok()
+    }
+}
+
+impl StateChecker for DebugObj {
+    fn get_state(&self) -> CharState {
+        println!("Getting state");
+        let state = CharState::InFight;
+        println!("Setting state to {:?}", state);
+        state
+    }
+}
+
+impl StateChecker for WindowObj {
+    fn get_state(&self) -> CharState {
+        println!("Getting state");
+        //TODO.....
+        let x = get_pixel_color(self.hwnd, 100, 100);
+        let state = CharState::InFight;
+        println!("Setting state to {:?}", state);
+        state
     }
 }
 
@@ -81,7 +118,7 @@ pub struct Rotation {
 }
 
 pub trait Rotations<T> {
-    fn get_rotation(input: &T, cfg: &Config) -> Rotation;
+    fn get_rotation(input: T, cfg: &Config) -> Rotation;
 }
 
 fn calculate_haste_coef(cfg: &Config) -> f32 {
@@ -95,7 +132,7 @@ fn calculate_haste_coef(cfg: &Config) -> f32 {
     1.0
 }
 impl Rotations<Class> for Rotation {
-    fn get_rotation(input: &Class, cfg: &Config) -> Rotation {
+    fn get_rotation(input: Class, cfg: &Config) -> Rotation {
         match input {
             Class::Warrior => Rotation {
                 skills: vec![
@@ -285,14 +322,6 @@ impl Rotations<Class> for Rotation {
 }
 
 #[derive(Debug)]
-pub struct SimulationState {
-    pub window_config: WindowConfig,
-    pub rotation: Rotation,
-    pub state: CharState,
-    pub skill_tracker: SkillTracker,
-}
-
-#[derive(Debug)]
 pub struct SkillTracker {
     last_cast: HashMap<String, Instant>,
     buff_tracker: HashMap<String, Instant>,
@@ -300,6 +329,14 @@ pub struct SkillTracker {
 }
 
 impl SkillTracker {
+    pub fn new() -> Self {
+        SkillTracker {
+            last_cast: HashMap::new(),
+            buff_tracker: HashMap::new(),
+            debuff_tracker: HashMap::new(),
+        }
+    }
+
     pub fn track_cast(&mut self, skill: &Skill) {
         let now = Instant::now();
         if let Some(last_cast) = self.last_cast.get(&skill.name) {
@@ -390,8 +427,52 @@ impl SkillTracker {
     }
 }
 
+pub struct SimulationState {
+    pub window_config: WindowConfig,
+    pub rotation: Rotation,
+    pub state: CharState,
+    pub skill_tracker: SkillTracker,
+    pub skill_caster: Box<dyn SkillCaster>,
+}
+
+impl SimulationState {
+    pub fn new(
+        window_config: WindowConfig,
+        rotation: Rotation,
+        skill_tracker: SkillTracker,
+        skill_caster: Box<dyn SkillCaster>,
+    ) -> Self {
+        SimulationState {
+            window_config,
+            rotation,
+            state: CharState::InTown,
+            skill_tracker,
+            skill_caster,
+        }
+    }
+
+    pub fn run(&self) {}
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::config::Class;
+    use crate::simulation::{DebugObj, Rotation, SimulationState, SkillTracker};
+
     #[test]
-    fn test() {}
+    fn test_simulation() {
+        let cfg = Config::default();
+
+        let rotation = Rotation::get_rotation(Class::Enchanter, &cfg);
+
+        let simulation = SimulationState::new(
+            cfg.windows.first().unwrap().clone(),
+            rotation,
+            SkillTracker::new(),
+            Box::new(DebugObj::new()),
+        );
+
+        simulation.run();
+    }
 }

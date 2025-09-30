@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_cyclic_on_rotation() {
-        let test_rotation = Rotation::get_rotation(&Class::Warlock, &Config::default());
+        let test_rotation = Rotation::get_rotation(Class::Warlock, &Config::default());
         let mut cyclic_iter = CyclicIterator::new(&test_rotation.skills);
         assert_eq!(cyclic_iter.next().unwrap().name, "Lich Form");
         assert_eq!(cyclic_iter.next().unwrap().name, "Profane Spirit");
