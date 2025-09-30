@@ -18,7 +18,7 @@ pub struct Args {
     pub debug_interval_ms: u64,
 }
 
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Class {
     Enchanter,
     Warlock,

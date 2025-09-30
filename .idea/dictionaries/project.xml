@@ -6,6 +6,7 @@
       <w>colorref</w>
       <w>hbitmap</w>
       <w>hwnd</w>
+      <w>lich</w>
       <w>nevergrind</w>
     </words>
   </dictionary>
