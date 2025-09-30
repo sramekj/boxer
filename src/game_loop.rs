@@ -1,6 +1,6 @@
 use crate::config::{Class, Config};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_9, VK_OEM_MINUS, VK_OEM_NEC_EQUAL,
+    VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_9, VK_OEM_MINUS, VK_OEM_NEC_EQUAL,
 };
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -72,7 +72,73 @@ fn calculate_haste_coef(cfg: &Config) -> f32 {
 impl Rotations<Class> for Rotation {
     fn get_rotation(input: &Class, cfg: &Config) -> Rotation {
         match input {
-            Class::Warrior => Rotation { skills: vec![] },
+            Class::Warrior => Rotation {
+                skills: vec![
+                    Skill {
+                        name: "Intrepid Shout".to_string(),
+                        key: VK_OEM_NEC_EQUAL,
+                        cast_time: 0.0,
+                        cooldown: 0.0,
+                        buff_duration: Some(240.0),
+                        debuff_duration: None,
+                        skill_type: SkillType::Buff,
+                    },
+                    Skill {
+                        name: "Frenzy".to_string(),
+                        key: VK_5,
+                        cast_time: 0.0,
+                        cooldown: 60.0,
+                        buff_duration: Some(cfg.frenzy_duration),
+                        debuff_duration: None,
+                        skill_type: SkillType::Buff,
+                    },
+                    Skill {
+                        name: "Bulwark".to_string(),
+                        key: VK_OEM_MINUS,
+                        cast_time: 0.0,
+                        cooldown: 40.0,
+                        buff_duration: Some(cfg.bulwark_duration),
+                        debuff_duration: None,
+                        skill_type: SkillType::Buff,
+                    },
+                    Skill {
+                        name: "Rupture".to_string(),
+                        key: VK_4,
+                        cast_time: 0.0,
+                        cooldown: 0.0,
+                        buff_duration: None,
+                        debuff_duration: Some(18.0),
+                        skill_type: SkillType::Debuff,
+                    },
+                    Skill {
+                        name: "Double Throw".to_string(),
+                        key: VK_2,
+                        cast_time: 0.0,
+                        cooldown: 20.0,
+                        buff_duration: None,
+                        debuff_duration: None,
+                        skill_type: SkillType::Attack,
+                    },
+                    Skill {
+                        name: "Furious Cleave".to_string(),
+                        key: VK_1,
+                        cast_time: 0.0,
+                        cooldown: 16.0,
+                        buff_duration: None,
+                        debuff_duration: None,
+                        skill_type: SkillType::Attack,
+                    },
+                    Skill {
+                        name: "Rupture".to_string(),
+                        key: VK_4,
+                        cast_time: 0.0,
+                        cooldown: 0.0,
+                        buff_duration: None,
+                        debuff_duration: None,
+                        skill_type: SkillType::Attack,
+                    },
+                ],
+            },
             Class::Warlock => Rotation {
                 skills: vec![
                     Skill {

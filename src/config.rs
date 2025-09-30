@@ -40,6 +40,8 @@ pub struct WindowConfig {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     pub skill_haste_percent: f32,
+    pub frenzy_duration: f32,
+    pub bulwark_duration: f32,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -47,6 +49,8 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             skill_haste_percent: 10.0,
+            frenzy_duration: 20.0,
+            bulwark_duration: 10.0,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),
@@ -65,7 +69,7 @@ impl Default for Config {
                     window_height: 720,
                     position_x: 1280,
                     position_y: 0,
-                    active: false,
+                    active: true,
                     class: Class::Warlock,
                 },
                 WindowConfig {
@@ -75,7 +79,7 @@ impl Default for Config {
                     window_height: 720,
                     position_x: 0,
                     position_y: 0,
-                    active: false,
+                    active: true,
                     class: Class::Warrior,
                 },
             ],
