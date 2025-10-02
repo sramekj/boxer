@@ -456,6 +456,7 @@ impl SkillTracker {
 
 pub struct SimulationState {
     pub is_running: Arc<AtomicBool>,
+    pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
@@ -476,6 +477,7 @@ impl SimulationState {
     ) -> Self {
         SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
+            is_enabled: Arc::new(AtomicBool::new(false)),
             sync_interval_ms,
             window_config,
             rotation,
@@ -489,7 +491,12 @@ impl SimulationState {
     pub fn run(&mut self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
+        let is_enabled = self.is_enabled.clone();
         while is_running.load(Ordering::SeqCst) {
+            if !is_enabled.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_millis(self.sync_interval_ms));
+                continue;
+            }
             let mut casted = false;
             let mut looted = false;
             let state = self.state_checker.get_state();
@@ -536,6 +543,11 @@ impl SimulationState {
             }
             println!("Simulation cycle finished")
         }
+    }
+
+    pub fn enable_toggle(&self) {
+        let prev = self.is_enabled.fetch_xor(true, Ordering::SeqCst);
+        println!("Enabled: {}", !prev);
     }
 
     pub fn stop(&self) {

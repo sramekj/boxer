@@ -66,11 +66,11 @@ fn main() -> windows::core::Result<()> {
     const HOTKEY_ESC_ID: i32 = 2;
 
     // hWnd = HWND(0) => message delivered to thread message queue
-    let hwnd = Some(HWND::default());
+    let hwnd_screen = Some(HWND::default());
 
     unsafe {
-        RegisterHotKey(hwnd, HOTKEY_DEL_ID, MOD_NOREPEAT, VK_DELETE.0 as u32)?;
-        RegisterHotKey(hwnd, HOTKEY_ESC_ID, MOD_NOREPEAT, VK_ESCAPE.0 as u32)?;
+        RegisterHotKey(hwnd_screen, HOTKEY_DEL_ID, MOD_NOREPEAT, VK_DELETE.0 as u32)?;
+        RegisterHotKey(hwnd_screen, HOTKEY_ESC_ID, MOD_NOREPEAT, VK_ESCAPE.0 as u32)?;
     }
 
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
@@ -107,7 +107,7 @@ fn main() -> windows::core::Result<()> {
 
     let mut msg = MSG::default();
     unsafe {
-        while GetMessageW(&mut msg, hwnd, 0, 0).into() {
+        while GetMessageW(&mut msg, hwnd_screen, 0, 0).into() {
             if msg.message == WM_HOTKEY {
                 let id = msg.wParam.0 as i32;
                 match id {
@@ -128,8 +128,8 @@ fn main() -> windows::core::Result<()> {
             DispatchMessageW(&msg);
         }
 
-        UnregisterHotKey(hwnd, HOTKEY_DEL_ID)?;
-        UnregisterHotKey(hwnd, HOTKEY_ESC_ID)?;
+        UnregisterHotKey(hwnd_screen, HOTKEY_DEL_ID)?;
+        UnregisterHotKey(hwnd_screen, HOTKEY_ESC_ID)?;
     }
 
     let _ = worker.join();
