@@ -4,12 +4,13 @@ mod win_util;
 
 use crate::config::{Args, load_config};
 use crate::simulation::rotation::Rotations;
+use crate::simulation::shared_state::SharedState;
 use crate::simulation::{CharState, DebugObj, Rotation, SimulationState, WindowObj};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
 };
 use clap::Parser;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -73,6 +74,7 @@ fn main() -> windows::core::Result<()> {
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
     let mut simulations: Vec<Arc<SimulationState>> = vec![];
+    let shared_state = Arc::new(Mutex::new(SharedState::new(cfg.skill_haste_percent)));
 
     let active_windows = cfg
         .windows
@@ -108,6 +110,7 @@ fn main() -> windows::core::Result<()> {
                 rotation,
                 Box::new(DebugObj::new(CharState::Fighting)),
                 Box::new(DebugObj::new(CharState::Fighting)),
+                shared_state.clone(),
             ))
         } else {
             Arc::new(SimulationState::new(
@@ -116,6 +119,7 @@ fn main() -> windows::core::Result<()> {
                 rotation,
                 Box::new(WindowObj::new(hwnd_opt)),
                 Box::new(WindowObj::new(hwnd_opt)),
+                shared_state.clone(),
             ))
         };
 

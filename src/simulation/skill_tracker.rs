@@ -1,4 +1,5 @@
 use crate::simulation::CharState;
+use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
 use std::collections::HashMap;
@@ -10,14 +11,16 @@ pub struct SkillTracker {
     last_cast: Arc<Mutex<HashMap<String, Instant>>>,
     buff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
+    shared_state: Arc<Mutex<SharedState>>,
 }
 
 impl SkillTracker {
-    pub fn new() -> Self {
+    pub fn new(shared_state: Arc<Mutex<SharedState>>) -> Self {
         SkillTracker {
             last_cast: Arc::new(Mutex::new(HashMap::new())),
             buff_tracker: Arc::new(Mutex::new(HashMap::new())),
             debuff_tracker: Arc::new(Mutex::new(HashMap::new())),
+            shared_state,
         }
     }
 
@@ -40,6 +43,9 @@ impl SkillTracker {
             }
         }
         self.track_inner(skill, now, last_cast_map, buff_map, debuff_map);
+        let state = self.shared_state.clone();
+        let mut state = state.lock().unwrap();
+        state.set_skill_haste(skill.name == "Augmentation");
     }
 
     fn track_inner(

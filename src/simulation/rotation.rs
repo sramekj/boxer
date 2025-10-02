@@ -12,7 +12,6 @@ pub struct Rotation {
 
 pub trait Rotations<T> {
     fn get_rotation(input: T, cfg: &Config) -> Rotation;
-    fn get_haste_coef(cfg: &Config) -> f32;
 }
 
 impl Rotations<Class> for Rotation {
@@ -90,7 +89,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Lich Form".to_string(),
                         key: VK_OEM_MINUS,
-                        cast_time: 3.0 * Rotation::get_haste_coef(cfg),
+                        cast_time: 3.0,
                         cooldown: 0.0,
                         buff_duration: Some(720.0),
                         debuff_duration: None,
@@ -99,7 +98,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Profane Spirit".to_string(),
                         key: VK_OEM_PLUS,
-                        cast_time: 2.5 * Rotation::get_haste_coef(cfg),
+                        cast_time: 2.5,
                         cooldown: 0.0,
                         buff_duration: Some(900.0),
                         debuff_duration: None,
@@ -126,7 +125,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Venom Bolt".to_string(),
                         key: VK_4,
-                        cast_time: 3.0 * Rotation::get_haste_coef(cfg),
+                        cast_time: 3.0,
                         cooldown: 0.0,
                         buff_duration: None,
                         debuff_duration: None,
@@ -139,7 +138,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Augmentation".to_string(),
                         key: VK_9,
-                        cast_time: 2.0 * Rotation::get_haste_coef(cfg),
+                        cast_time: 2.0,
                         cooldown: 0.0,
                         buff_duration: Some(480.0),
                         debuff_duration: None,
@@ -148,7 +147,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Phase Blade".to_string(),
                         key: VK_0,
-                        cast_time: 2.0 * Rotation::get_haste_coef(cfg),
+                        cast_time: 2.0,
                         cooldown: 0.0,
                         buff_duration: Some(600.0),
                         debuff_duration: None,
@@ -157,7 +156,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Clarity".to_string(),
                         key: VK_OEM_MINUS,
-                        cast_time: 2.5 * Rotation::get_haste_coef(cfg),
+                        cast_time: 2.5,
                         cooldown: 0.0,
                         buff_duration: Some(720.0),
                         debuff_duration: None,
@@ -166,7 +165,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Color Shift".to_string(),
                         key: VK_2,
-                        cast_time: 1.5 * Rotation::get_haste_coef(cfg),
+                        cast_time: 1.5,
                         cooldown: 30.0,
                         buff_duration: None,
                         debuff_duration: None,
@@ -184,7 +183,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Enthrall".to_string(),
                         key: VK_3,
-                        cast_time: 3.0 * Rotation::get_haste_coef(cfg),
+                        cast_time: 3.0,
                         cooldown: 12.0,
                         buff_duration: None,
                         debuff_duration: None,
@@ -193,7 +192,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Mind Blitz".to_string(),
                         key: VK_4,
-                        cast_time: 2.5 * Rotation::get_haste_coef(cfg),
+                        cast_time: 2.5,
                         cooldown: 0.0,
                         buff_duration: None,
                         debuff_duration: None,
@@ -202,16 +201,5 @@ impl Rotations<Class> for Rotation {
                 ],
             },
         }
-    }
-
-    fn get_haste_coef(cfg: &Config) -> f32 {
-        let has_enchanter = cfg
-            .windows
-            .iter()
-            .any(|w| w.class == Class::Enchanter && w.active);
-        if has_enchanter {
-            return (100.0 - cfg.skill_haste_percent) / 100.0;
-        }
-        1.0
     }
 }

@@ -1,19 +1,21 @@
 pub mod char_state;
 pub mod rotation;
+pub(crate) mod shared_state;
 mod skill;
 mod skill_caster;
 mod skill_tracker;
 mod skill_type;
-mod state_checker;
+pub mod state_checker;
 
 use crate::config::WindowConfig;
 pub(crate) use crate::simulation::char_state::CharState;
 pub(crate) use crate::simulation::rotation::Rotation;
+use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill_caster::SkillCaster;
 use crate::simulation::skill_tracker::SkillTracker;
 use crate::simulation::state_checker::StateChecker;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use windows::Win32::Foundation::HWND;
@@ -50,6 +52,7 @@ pub struct SimulationState {
     pub skill_tracker: SkillTracker,
     pub skill_caster: Box<dyn SkillCaster + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
+    pub shared_state: Arc<Mutex<SharedState>>,
 }
 
 impl SimulationState {
@@ -59,6 +62,7 @@ impl SimulationState {
         rotation: Rotation,
         skill_caster: Box<dyn SkillCaster + Send + Sync>,
         state_checker: Box<dyn StateChecker + Send + Sync>,
+        shared_state: Arc<Mutex<SharedState>>,
     ) -> Self {
         SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
@@ -66,9 +70,10 @@ impl SimulationState {
             sync_interval_ms,
             window_config,
             rotation,
-            skill_tracker: SkillTracker::new(),
+            skill_tracker: SkillTracker::new(shared_state.clone()),
             skill_caster,
             state_checker,
+            shared_state,
         }
     }
 
@@ -95,10 +100,14 @@ impl SimulationState {
                         if self.skill_tracker.should_cast(&skill, state) {
                             // try to cast
                             self.skill_caster.cast(&skill);
-                            let ms = if skill.cast_time > 0.0 {
+                            let ms = if skill.cast_time(self.shared_state.clone()) > 0.0 {
                                 //let's wait for a cast time duration
-                                let ms = (skill.cast_time * 1000.0) as u64;
-                                println!("Casting for {} seconds", skill.cast_time);
+                                let ms =
+                                    (skill.cast_time(self.shared_state.clone()) * 1000.0) as u64;
+                                println!(
+                                    "Casting for {} seconds",
+                                    skill.cast_time(self.shared_state.clone())
+                                );
                                 ms
                             } else {
                                 let ms = (skill.get_gcd() * 1000.0) as u64;
@@ -108,7 +117,8 @@ impl SimulationState {
                                 );
                                 ms
                             };
-                            thread::sleep(Duration::from_millis(ms));
+                            const LEEWAY: u64 = 50;
+                            thread::sleep(Duration::from_millis(ms + LEEWAY));
                             // and track the cooldown
                             self.skill_tracker.track_cast(&skill);
                             casted = true;
@@ -147,7 +157,9 @@ impl SimulationState {
 mod tests {
     use crate::config::{Class, Config};
     use crate::simulation::rotation::Rotations;
+    use crate::simulation::shared_state::SharedState;
     use crate::simulation::{CharState, DebugObj, Rotation, SimulationState};
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn test_simulation() {
@@ -161,6 +173,7 @@ mod tests {
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
+            Arc::new(Mutex::new(SharedState::new(cfg.skill_haste_percent))),
         );
 
         simulation.enable_toggle();

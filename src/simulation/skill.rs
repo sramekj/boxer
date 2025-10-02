@@ -1,5 +1,7 @@
 use crate::simulation::CharState;
+use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill_type::SkillType;
+use std::sync::{Arc, Mutex};
 use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
 #[derive(Debug, Clone)]
@@ -26,5 +28,22 @@ impl Skill {
             CharState::InDungeon => self.skill_type == SkillType::Buff,
             CharState::Fighting | CharState::Looting => true,
         }
+    }
+
+    pub fn cast_time(&self, shared_state: Arc<Mutex<SharedState>>) -> f32 {
+        if self.cast_time == 0.0 {
+            0.0
+        } else {
+            self.cast_time * self.get_haste_coef(shared_state)
+        }
+    }
+
+    fn get_haste_coef(&self, shared_state: Arc<Mutex<SharedState>>) -> f32 {
+        let state = Arc::clone(&shared_state);
+        let state = state.lock().unwrap();
+        if state.get_skill_haste() {
+            return (100.0 - state.get_skill_haste_percent()) / 100.0;
+        }
+        1.0
     }
 }
