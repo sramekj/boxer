@@ -72,7 +72,7 @@ fn main() -> windows::core::Result<()> {
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
-    let mut simulations: Vec<Arc<Mutex<SimulationState>>> = vec![];
+    let mut simulations: Vec<Arc<SimulationState>> = vec![];
 
     let active_windows = cfg
         .windows
@@ -101,19 +101,18 @@ fn main() -> windows::core::Result<()> {
 
         let rotation = Rotation::get_rotation(active_window.class, &cfg);
 
-        let simulation = Arc::new(Mutex::new(SimulationState::new(
+        let simulation = Arc::new(SimulationState::new(
             cfg.sync_interval_ms,
             active_window,
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
-        )));
+        ));
 
         let handle = thread::spawn({
             let sim = Arc::clone(&simulation);
-            simulations.push(simulation);
+            simulations.push(sim);
             move || {
-                let sim = sim.lock().unwrap();
                 sim.run();
             }
         });
@@ -128,13 +127,11 @@ fn main() -> windows::core::Result<()> {
                 match id {
                     HOTKEY_DEL_ID => {
                         simulations.iter().for_each(|sim| {
-                            let sim = sim.lock().unwrap();
                             sim.enable_toggle();
                         });
                     }
                     HOTKEY_ESC_ID => {
                         simulations.iter().for_each(|sim| {
-                            let sim = sim.lock().unwrap();
                             sim.stop();
                         });
                         println!("Quitting application...");
