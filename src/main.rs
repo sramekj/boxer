@@ -113,7 +113,7 @@ fn main() -> windows::core::Result<()> {
             let sim = Arc::clone(&simulation);
             simulations.push(simulation);
             move || {
-                let mut sim = sim.lock().unwrap();
+                let sim = sim.lock().unwrap();
                 sim.run();
             }
         });
