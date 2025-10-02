@@ -69,7 +69,7 @@ impl SimulationState {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
         let is_enabled = self.is_enabled.clone();
@@ -152,7 +152,7 @@ mod tests {
 
         let rotation = Rotation::get_rotation(Class::Enchanter, &cfg);
 
-        let mut simulation = SimulationState::new(
+        let simulation = SimulationState::new(
             cfg.sync_interval_ms,
             cfg.windows.first().unwrap().clone(),
             rotation,

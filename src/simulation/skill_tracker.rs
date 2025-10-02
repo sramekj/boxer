@@ -2,27 +2,34 @@ use crate::simulation::CharState;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 pub struct SkillTracker {
-    last_cast: HashMap<String, Instant>,
-    buff_tracker: HashMap<String, Instant>,
-    debuff_tracker: HashMap<String, Instant>,
+    last_cast: Arc<Mutex<HashMap<String, Instant>>>,
+    buff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
+    debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl SkillTracker {
     pub fn new() -> Self {
         SkillTracker {
-            last_cast: HashMap::new(),
-            buff_tracker: HashMap::new(),
-            debuff_tracker: HashMap::new(),
+            last_cast: Arc::new(Mutex::new(HashMap::new())),
+            buff_tracker: Arc::new(Mutex::new(HashMap::new())),
+            debuff_tracker: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    pub fn track_cast(&mut self, skill: &Skill) {
+    pub fn track_cast(&self, skill: &Skill) {
         let now = Instant::now();
-        if let Some(last_cast) = self.last_cast.get(&skill.name) {
+        let last_cast_map = Arc::clone(&self.last_cast);
+        let buff_map = Arc::clone(&self.buff_tracker);
+        let debuff_map = Arc::clone(&self.debuff_tracker);
+        let last_cast_map = last_cast_map.lock().unwrap();
+        let buff_map = buff_map.lock().unwrap();
+        let debuff_map = debuff_map.lock().unwrap();
+        if let Some(last_cast) = last_cast_map.get(&skill.name) {
             let diff = now - *last_cast;
             if diff.as_secs_f32() < skill.cooldown {
                 println!(
@@ -31,27 +38,34 @@ impl SkillTracker {
                 );
                 return;
             }
-            self.track_inner(skill, now);
-        } else {
-            self.track_inner(skill, now);
         }
+        self.track_inner(skill, now, last_cast_map, buff_map, debuff_map);
     }
 
-    fn track_inner(&mut self, skill: &Skill, now: Instant) {
-        self.last_cast.insert(skill.name.clone(), now);
+    fn track_inner(
+        &self,
+        skill: &Skill,
+        now: Instant,
+        mut last_cast_map: MutexGuard<HashMap<String, Instant>>,
+        mut buff_map: MutexGuard<HashMap<String, Instant>>,
+        mut debuff_map: MutexGuard<HashMap<String, Instant>>,
+    ) {
+        last_cast_map.insert(skill.name.clone(), now);
         match skill.skill_type {
             SkillType::Buff => {
-                self.buff_tracker.insert(skill.name.clone(), now);
+                buff_map.insert(skill.name.clone(), now);
             }
             SkillType::Debuff => {
-                self.debuff_tracker.insert(skill.name.clone(), now);
+                debuff_map.insert(skill.name.clone(), now);
             }
             _ => {}
         }
     }
 
     pub fn is_on_cooldown(&self, skill: &Skill) -> bool {
-        match self.last_cast.get(&skill.name) {
+        let map = Arc::clone(&self.last_cast);
+        let map = map.lock().unwrap();
+        match map.get(&skill.name) {
             None => false,
             Some(last_cast) => {
                 let now = Instant::now();
@@ -102,7 +116,9 @@ impl SkillTracker {
 
     pub fn has_buff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
-        if let Some(last_cast) = self.buff_tracker.get(&skill.name) {
+        let map = Arc::clone(&self.buff_tracker);
+        let map = map.lock().unwrap();
+        if let Some(last_cast) = map.get(&skill.name) {
             let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
             if let Some(buff_duration) = skill.buff_duration {
                 diff.as_secs_f32() < buff_duration
@@ -116,7 +132,9 @@ impl SkillTracker {
 
     pub fn has_debuff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
-        if let Some(last_cast) = self.debuff_tracker.get(&skill.name) {
+        let map = Arc::clone(&self.debuff_tracker);
+        let map = map.lock().unwrap();
+        if let Some(last_cast) = map.get(&skill.name) {
             let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
             if let Some(debuff_duration) = skill.debuff_duration {
                 diff.as_secs_f32() < debuff_duration
