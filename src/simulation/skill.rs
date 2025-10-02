@@ -1,13 +1,13 @@
 use crate::simulation::CharState;
+use crate::simulation::keys::Key;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill_type::SkillType;
 use std::sync::{Arc, Mutex};
-use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
 #[derive(Debug, Clone)]
 pub struct Skill {
     pub name: String,
-    pub key: VIRTUAL_KEY,
+    pub key: Key,
     pub cast_time: f32,
     pub cooldown: f32,
     pub buff_duration: Option<f32>,
@@ -25,7 +25,7 @@ impl Skill {
     pub fn can_cast(&self, state: CharState) -> bool {
         match state {
             CharState::InTown | CharState::Dead => false,
-            CharState::InDungeon => self.skill_type == SkillType::Buff,
+            CharState::InDungeon | CharState::AtShrine => self.skill_type == SkillType::Buff,
             CharState::Fighting | CharState::Looting => true,
         }
     }

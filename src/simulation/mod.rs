@@ -1,17 +1,18 @@
 pub mod char_state;
+mod interactor;
+pub mod keys;
 pub mod rotation;
 pub(crate) mod shared_state;
 mod skill;
-mod skill_caster;
 mod skill_tracker;
 mod skill_type;
 pub mod state_checker;
 
 use crate::config::WindowConfig;
 pub(crate) use crate::simulation::char_state::CharState;
+use crate::simulation::interactor::Interactor;
 pub(crate) use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedState;
-use crate::simulation::skill_caster::SkillCaster;
 use crate::simulation::skill_tracker::SkillTracker;
 use crate::simulation::state_checker::StateChecker;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -51,7 +52,7 @@ pub struct SimulationState {
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub skill_tracker: SkillTracker,
-    pub skill_caster: Box<dyn SkillCaster + Send + Sync>,
+    pub skill_caster: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
     pub shared_state: Arc<Mutex<SharedState>>,
 }
@@ -62,7 +63,7 @@ impl SimulationState {
         cast_leeway_ms: u64,
         window_config: WindowConfig,
         rotation: Rotation,
-        skill_caster: Box<dyn SkillCaster + Send + Sync>,
+        skill_caster: Box<dyn Interactor + Send + Sync>,
         state_checker: Box<dyn StateChecker + Send + Sync>,
         shared_state: Arc<Mutex<SharedState>>,
     ) -> Self {
@@ -102,7 +103,7 @@ impl SimulationState {
                         // if we can cast (or buff/debuff is down)
                         if self.skill_tracker.should_cast(&skill, state) {
                             // try to cast
-                            let cast_result = self.skill_caster.cast(&skill);
+                            let cast_result = self.skill_caster.cast_skill(&skill);
                             let cast_time = skill.cast_time(self.shared_state.clone());
                             let ms = if cast_time > 0.0 {
                                 //let's wait for a cast time duration
@@ -130,6 +131,9 @@ impl SimulationState {
                         // TODO: implement looting
 
                         looted = true;
+                    }
+                    if state == CharState::AtShrine {
+                        // TODO: implement shrine
                     }
                 }
             }

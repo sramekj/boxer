@@ -4,5 +4,6 @@ pub enum CharState {
     InDungeon,
     Fighting,
     Looting,
+    AtShrine,
     Dead,
 }

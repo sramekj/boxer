@@ -1,3 +1,4 @@
+use crate::simulation::keys::Key;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -36,9 +37,9 @@ fn make_input(vk: VIRTUAL_KEY, key_up: bool) -> INPUT {
     }
 }
 
-pub fn send_key_vk(vk: VIRTUAL_KEY) -> windows::core::Result<()> {
+pub fn send_key_vk(key: Key) -> windows::core::Result<()> {
     unsafe {
-        let inputs = [make_input(vk, false), make_input(vk, true)];
+        let inputs = [make_input(key.into(), false), make_input(key.into(), true)];
         let sent = SendInput(&inputs, size_of::<INPUT>() as i32);
         if sent == 0 {
             Err(Error::from(GetLastError()))
