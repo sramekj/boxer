@@ -117,7 +117,7 @@ impl SimulationState {
                                 );
                                 ms
                             };
-                            const LEEWAY: u64 = 50;
+                            const LEEWAY: u64 = 150;
                             thread::sleep(Duration::from_millis(ms + LEEWAY));
                             // and track the cooldown
                             self.skill_tracker.track_cast(&skill);
