@@ -43,9 +43,6 @@ impl SkillTracker {
             }
         }
         self.track_inner(skill, now, last_cast_map, buff_map, debuff_map);
-        let state = self.shared_state.clone();
-        let mut state = state.lock().unwrap();
-        state.set_skill_haste(skill.name == "Augmentation");
     }
 
     fn track_inner(
@@ -59,6 +56,11 @@ impl SkillTracker {
         last_cast_map.insert(skill.name.clone(), now);
         match skill.skill_type {
             SkillType::Buff => {
+                if skill.name == "Augmentation" {
+                    let state = self.shared_state.clone();
+                    let mut state = state.lock().unwrap();
+                    state.set_skill_haste(true);
+                }
                 buff_map.insert(skill.name.clone(), now);
             }
             SkillType::Debuff => {
@@ -97,6 +99,11 @@ impl SkillTracker {
             SkillType::Buff => {
                 let result = !self.has_buff_applied(skill);
                 if result {
+                    if skill.name == "Augmentation" {
+                        let state = self.shared_state.clone();
+                        let mut state = state.lock().unwrap();
+                        state.set_skill_haste(false);
+                    }
                     println!("Buff {} expired", skill.name);
                 } else {
                     println!("Buff {} is still applied", skill.name);
