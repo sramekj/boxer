@@ -7,5 +7,5 @@ authors = ["srama"]
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
 toml = "0.9.7"
-windows = { version = "0.62.1", features = ["Win32", "Win32_UI", "Win32_UI_Input", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System", "Win32_System_Threading", "Win32_Graphics", "Win32_Graphics_Gdi", "Win32_Storage", "Win32_Storage_Xps"] }
+windows = { version = "0.62.1", features = ["Win32", "Win32_UI", "Win32_UI_Input", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System", "Win32_System_Threading", "Win32_Graphics", "Win32_Graphics_Gdi", "Win32_Storage", "Win32_Storage_Xps", "Win32_UI_HiDpi"] }
 serde = { version = "1.0.228", features = ["derive"] }

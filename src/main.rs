@@ -7,7 +7,7 @@ use crate::simulation::rotation::Rotations;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::{CharState, DebugObj, Rotation, SimulationState, WindowObj};
 use crate::win_util::{
-    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
+    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, make_dpi_aware, set_window,
 };
 use clap::Parser;
 use std::sync::{Arc, Mutex};
@@ -32,6 +32,10 @@ fn main() -> windows::core::Result<()> {
         return Ok(());
     }
 
+    if !make_dpi_aware().is_ok() {
+        eprintln!("DPI aware failed");
+    }
+
     let cfg = load_config();
 
     if args.debug_mouse {
@@ -51,7 +55,7 @@ fn main() -> windows::core::Result<()> {
                 }
                 Some(hwnd) => loop {
                     debug_mouse(hwnd);
-                    debug_mouse_color();
+                    debug_mouse_color(hwnd);
                     thread::sleep(Duration::from_millis(args.debug_interval_ms));
                 },
             }

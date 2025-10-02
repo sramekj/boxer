@@ -6,6 +6,7 @@
       <w>coef</w>
       <w>colorref</w>
       <w>hbitmap</w>
+      <w>hpen</w>
       <w>hwnd</w>
       <w>lich</w>
       <w>nevergrind</w>

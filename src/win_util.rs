@@ -3,9 +3,13 @@ use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
-use windows::Win32::Foundation::{GetLastError, HWND, LPARAM, POINT, WPARAM};
-use windows::Win32::Graphics::Gdi::{ClientToScreen, GetDC, GetPixel, ReleaseDC, ScreenToClient};
+use windows::Win32::Foundation::{COLORREF, GetLastError, HWND, LPARAM, POINT, WPARAM};
+use windows::Win32::Graphics::Gdi::{
+    ClientToScreen, CreatePen, DeleteObject, GetDC, GetPixel, GetStockObject, HGDIOBJ, NULL_BRUSH,
+    PS_SOLID, Rectangle, ReleaseDC, ScreenToClient, SelectObject,
+};
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
+use windows::Win32::UI::HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
 };
@@ -134,20 +138,39 @@ impl Display for PixelColor {
 
 const CLR_INVALID: u32 = 0xFFFFFFFF;
 
-pub fn get_pixel_color(
+pub fn get_pixel_color_screen(x: i32, y: i32) -> windows::core::Result<PixelColor> {
+    unsafe {
+        let hdc_screen = GetDC(None);
+        if hdc_screen.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        let color = GetPixel(hdc_screen, x, y);
+
+        if ReleaseDC(None, hdc_screen) == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+
+        if color.0 == CLR_INVALID {
+            Err(Error::from(GetLastError()))
+        } else {
+            Ok(PixelColor(color.0))
+        }
+    }
+}
+
+pub fn get_pixel_color_local(
     hwnd_opt: Option<HWND>,
     x: i32,
     y: i32,
 ) -> windows::core::Result<PixelColor> {
     unsafe {
-        println!("local x: {}, y: {}", x, y);
         let mut point = POINT { x, y };
         if let Some(hwnd) = hwnd_opt
             && !ClientToScreen(hwnd, &mut point).as_bool()
         {
             return Err(Error::from(GetLastError()));
         }
-        println!("screen x: {}, y: {}", point.x, point.y);
 
         let hdc_screen = GetDC(None);
         if hdc_screen.0.is_null() {
@@ -168,28 +191,23 @@ pub fn get_pixel_color(
     }
 }
 
-pub fn debug_mouse_color() {
+pub fn debug_mouse_color(hwnd: HWND) {
     unsafe {
         let mut pt = POINT::default();
         if GetCursorPos(&mut pt).is_err() {
             return;
         }
-        let x = pt.x;
-        let y = pt.y;
-        if x < 0 || y < 0 {
-            return;
+        match get_pixel_color_screen(pt.x, pt.y) {
+            Ok(color) => {
+                println!("Color: {}", color);
+            }
+            Err(e) => {
+                eprintln!("Failed to get color at [{}, {}]: {:?}", pt.x, pt.y, e);
+            }
         }
-        print_color(None, x, y);
-    }
-}
 
-fn print_color(hwnd: Option<HWND>, x: i32, y: i32) {
-    match get_pixel_color(hwnd, x, y) {
-        Ok(color) => {
-            println!("Color: {}", color);
-        }
-        Err(e) => {
-            println!("Failed to get color at [{}, {}]: {:?}", x, y, e);
+        if !debug_rectangle(Some(hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
+            eprintln!("Failed to draw a rectangle");
         }
     }
 }
@@ -212,6 +230,43 @@ pub fn debug_mouse(hwnd: HWND) {
     }
 }
 
+pub fn debug_rectangle(
+    hwnd: Option<HWND>,
+    left: i32,
+    top: i32,
+    right: i32,
+    bottom: i32,
+) -> windows::core::Result<()> {
+    unsafe {
+        let hdc = GetDC(None);
+        if hdc.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        // Create a red pen (for border)
+        let hpen = CreatePen(PS_SOLID, 2, COLORREF(0xFF0000));
+        let old_pen = SelectObject(hdc, HGDIOBJ(hpen.0));
+
+        // Optional: Create a null brush (no fill)
+        let hollow_brush = GetStockObject(NULL_BRUSH);
+        let old_brush = SelectObject(hdc, hollow_brush);
+
+        let success = Rectangle(hdc, left, top, right, bottom);
+        if !success.as_bool() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        SelectObject(hdc, old_pen);
+        SelectObject(hdc, old_brush);
+        if !DeleteObject(HGDIOBJ(hpen.0)).as_bool() {
+            eprintln!("Could not delete pen object");
+        }
+        ReleaseDC(hwnd, hdc);
+
+        Ok(())
+    }
+}
+
 pub fn set_window(
     hwnd: HWND,
     x: i32,
@@ -230,6 +285,10 @@ pub fn set_window(
             SWP_NOZORDER | SWP_SHOWWINDOW,
         )
     }
+}
+
+pub fn make_dpi_aware() -> windows::core::Result<()> {
+    unsafe { SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) }
 }
 
 #[cfg(test)]
