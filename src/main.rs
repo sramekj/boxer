@@ -111,7 +111,7 @@ fn main() -> windows::core::Result<()> {
 
         let handle = thread::spawn({
             let sim = Arc::clone(&simulation);
-            simulations.push(sim);
+            simulations.push(sim.clone());
             move || {
                 sim.run();
             }
