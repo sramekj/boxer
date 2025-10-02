@@ -81,6 +81,20 @@ impl SimulationState {
         }
     }
 
+    pub fn debug_checker(&self) {
+        self.is_running.store(true, Ordering::SeqCst);
+        let is_running = self.is_running.clone();
+        let is_enabled = self.is_enabled.clone();
+        while is_running.load(Ordering::SeqCst) {
+            if !is_enabled.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_millis(self.sync_interval_ms));
+                continue;
+            }
+            _ = self.state_checker.get_state();
+            thread::sleep(Duration::from_millis(self.sync_interval_ms));
+        }
+    }
+
     pub fn run(&self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();

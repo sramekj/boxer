@@ -129,7 +129,11 @@ fn main() -> windows::core::Result<()> {
             let sim = Arc::clone(&simulation);
             simulations.push(sim.clone());
             move || {
-                sim.run();
+                if args.debug_checker {
+                    sim.debug_checker();
+                } else {
+                    sim.run();
+                }
             }
         });
         handles.push(handle);
