@@ -108,7 +108,7 @@ impl SimulationState {
             let mut looted = false;
             let state = self.state_checker.get_state();
             match state {
-                CharState::InTown => {
+                CharState::InTown | CharState::Unknown => {
                     // do nothing
                 }
                 _ => {

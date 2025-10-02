@@ -17,7 +17,7 @@ pub struct Args {
     pub debug_interval_ms: u64,
     #[arg(long = "debug-sim", default_value = "false")]
     pub debug_sim: bool,
-    #[arg(long = "debug-checker", default_value = "false")]
+    #[arg(short = 'c', long = "debug-checker", default_value = "false")]
     pub debug_checker: bool,
 }
 

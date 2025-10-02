@@ -24,7 +24,7 @@ impl Skill {
 
     pub fn can_cast(&self, state: CharState) -> bool {
         match state {
-            CharState::InTown | CharState::Dead => false,
+            CharState::InTown | CharState::Dead | CharState::Unknown => false,
             CharState::InDungeon | CharState::AtShrine => self.skill_type == SkillType::Buff,
             CharState::Fighting | CharState::Looting => true,
         }

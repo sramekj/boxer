@@ -6,4 +6,5 @@ pub enum CharState {
     Looting,
     AtShrine,
     Dead,
+    Unknown,
 }

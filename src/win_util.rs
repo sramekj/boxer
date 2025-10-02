@@ -123,7 +123,7 @@ pub fn focus_window(hwnd_opt: Option<HWND>) -> windows::core::BOOL {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct PixelColor(pub u32);
 
 impl Display for PixelColor {
