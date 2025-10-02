@@ -1,4 +1,4 @@
-pub mod hex_hwnd;
+mod hex_hwnd;
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};

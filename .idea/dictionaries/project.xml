@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>bgra</w>
+      <w>charstate</w>
       <w>coef</w>
       <w>colorref</w>
       <w>hbitmap</w>

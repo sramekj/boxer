@@ -3,7 +3,8 @@ mod simulation;
 mod win_util;
 
 use crate::config::{Args, load_config};
-use crate::simulation::{CharState, DebugObj, Rotation, Rotations, SimulationState};
+use crate::simulation::rotation::Rotations;
+use crate::simulation::{CharState, DebugObj, Rotation, SimulationState};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
 };
