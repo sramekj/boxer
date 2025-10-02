@@ -2,7 +2,8 @@ pub mod config;
 mod simulation;
 mod win_util;
 
-use crate::config::{Args, Config, WindowConfig, load_config};
+use crate::config::{Args, Class, Config, WindowConfig, load_config};
+use crate::simulation::{CharState, DebugObj, Rotation, Rotations, SimulationState, SkillTracker};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, set_window,
 };
@@ -75,6 +76,9 @@ fn main() -> windows::core::Result<()> {
 
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
 
+    let mut handles: Vec<JoinHandle<()>> = vec![];
+    let mut simulations: Vec<SimulationState> = vec![];
+
     let active_windows = cfg.windows.iter().filter(|x| x.active);
     active_windows.for_each(|win_config| {
         let mut hwnd_opt = match &win_config.title {
@@ -94,16 +98,23 @@ fn main() -> windows::core::Result<()> {
             )
             .expect("Failed to set window position");
         }
-    });
 
-    //////////////////
-    let worker = spawn_window_worker(
-        running_clone,
-        enabled_clone,
-        cfg.clone(),
-        cfg.windows.first().unwrap(),
-        || {},
-    );
+        let rotation = Rotation::get_rotation(win_config.class, &cfg);
+
+        let mut simulation = SimulationState::new(
+            cfg.sync_interval_ms,
+            win_config,
+            rotation,
+            Box::new(DebugObj::new(CharState::Fighting)),
+            Box::new(DebugObj::new(CharState::Fighting)),
+        );
+        simulations.push(simulation);
+
+        let handle = thread::spawn(move || {
+            simulation.run();
+        });
+        handles.push(handle);
+    });
 
     let mut msg = MSG::default();
     unsafe {
@@ -112,13 +123,11 @@ fn main() -> windows::core::Result<()> {
                 let id = msg.wParam.0 as i32;
                 match id {
                     HOTKEY_DEL_ID => {
-                        let prev = enabled.fetch_xor(true, Ordering::SeqCst);
-                        println!("Enabled: {}", !prev);
+                        simulations.iter().for_each(|sim| sim.enable_toggle());
                     }
                     HOTKEY_ESC_ID => {
-                        println!("Quitting...");
-                        enabled.store(false, Ordering::SeqCst);
-                        running.store(false, Ordering::SeqCst);
+                        simulations.iter().for_each(|sim| sim.stop());
+                        println!("Quitting application...");
                         break;
                     }
                     _ => {}
@@ -132,24 +141,9 @@ fn main() -> windows::core::Result<()> {
         UnregisterHotKey(hwnd_screen, HOTKEY_ESC_ID)?;
     }
 
-    let _ = worker.join();
+    for handle in handles {
+        handle.join().expect("Thread panicked");
+    }
 
     Ok(())
-}
-
-fn spawn_window_worker(
-    running: Arc<AtomicBool>,
-    enabled: Arc<AtomicBool>,
-    config: Config,
-    window_config: &WindowConfig,
-    worker: fn() -> (),
-) -> JoinHandle<()> {
-    thread::spawn(move || {
-        while running.load(Ordering::SeqCst) {
-            if enabled.load(Ordering::SeqCst) {
-                worker();
-            }
-            thread::sleep(Duration::from_millis(config.sync_interval_ms));
-        }
-    })
 }

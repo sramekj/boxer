@@ -454,11 +454,11 @@ impl SkillTracker {
     }
 }
 
-pub struct SimulationState {
+pub struct SimulationState<'a> {
     pub is_running: Arc<AtomicBool>,
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
-    pub window_config: WindowConfig,
+    pub window_config: &'a WindowConfig,
     pub rotation: Rotation,
     pub state: CharState,
     pub skill_tracker: SkillTracker,
@@ -466,12 +466,11 @@ pub struct SimulationState {
     pub state_checker: Box<dyn StateChecker>,
 }
 
-impl SimulationState {
+impl<'a> SimulationState<'a> {
     pub fn new(
         sync_interval_ms: u64,
-        window_config: WindowConfig,
+        window_config: &'a WindowConfig,
         rotation: Rotation,
-        skill_tracker: SkillTracker,
         skill_caster: Box<dyn SkillCaster>,
         state_checker: Box<dyn StateChecker>,
     ) -> Self {
@@ -482,7 +481,7 @@ impl SimulationState {
             window_config,
             rotation,
             state: CharState::InTown,
-            skill_tracker,
+            skill_tracker: SkillTracker::new(),
             skill_caster,
             state_checker,
         }
@@ -547,11 +546,15 @@ impl SimulationState {
 
     pub fn enable_toggle(&self) {
         let prev = self.is_enabled.fetch_xor(true, Ordering::SeqCst);
-        println!("Enabled: {}", !prev);
+        println!(
+            "Enabled: {} for class: {:?}",
+            !prev, self.window_config.class
+        );
     }
 
     pub fn stop(&self) {
         self.is_running.store(false, Ordering::SeqCst);
+        println!("Stopping for class: {:?}", self.window_config.class);
     }
 }
 
@@ -570,9 +573,8 @@ mod tests {
 
         let mut simulation = SimulationState::new(
             cfg.sync_interval_ms,
-            cfg.windows.first().unwrap().clone(),
+            &cfg.windows.first().unwrap(),
             rotation,
-            SkillTracker::new(),
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
         );
