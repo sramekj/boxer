@@ -50,4 +50,4 @@ fn check_location(
 struct Location(i32, i32, PixelColor);
 
 const TOWN_MARKER: Location = Location(1127, 10, PixelColor(0x03CDF4));
-const DUNGEON_MARKER: Location = Location(937, 303, PixelColor(0xFFFFFF));
+const DUNGEON_MARKER: Location = Location(939, 304, PixelColor(0xFFFF75));

@@ -140,12 +140,14 @@ pub fn get_pixel_color(
     y: i32,
 ) -> windows::core::Result<PixelColor> {
     unsafe {
+        println!("local x: {}, y: {}", x, y);
         let mut point = POINT { x, y };
         if let Some(hwnd) = hwnd_opt
             && !ClientToScreen(hwnd, &mut point).as_bool()
         {
             return Err(Error::from(GetLastError()));
         }
+        println!("screen x: {}, y: {}", point.x, point.y);
 
         let hdc_screen = GetDC(None);
         if hdc_screen.0.is_null() {
@@ -199,7 +201,7 @@ pub fn debug_mouse(hwnd: HWND) {
             return;
         }
         let abs_x = pt.x;
-        let abs_y = pt.x;
+        let abs_y = pt.y;
         if !ScreenToClient(hwnd, &mut pt).as_bool() {
             return;
         }
