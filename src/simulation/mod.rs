@@ -47,6 +47,7 @@ pub struct SimulationState {
     pub is_running: Arc<AtomicBool>,
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
+    pub cast_leeway_ms: u64,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub skill_tracker: SkillTracker,
@@ -58,6 +59,7 @@ pub struct SimulationState {
 impl SimulationState {
     pub fn new(
         sync_interval_ms: u64,
+        cast_leeway_ms: u64,
         window_config: WindowConfig,
         rotation: Rotation,
         skill_caster: Box<dyn SkillCaster + Send + Sync>,
@@ -68,6 +70,7 @@ impl SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
             is_enabled: Arc::new(AtomicBool::new(false)),
             sync_interval_ms,
+            cast_leeway_ms,
             window_config,
             rotation,
             skill_tracker: SkillTracker::new(shared_state.clone()),
@@ -117,8 +120,7 @@ impl SimulationState {
                                 );
                                 ms
                             };
-                            const LEEWAY: u64 = 150;
-                            thread::sleep(Duration::from_millis(ms + LEEWAY));
+                            thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
                             // and track the cooldown
                             self.skill_tracker.track_cast(&skill);
                             casted = true;
@@ -169,6 +171,7 @@ mod tests {
 
         let simulation = SimulationState::new(
             cfg.sync_interval_ms,
+            0,
             cfg.windows.first().unwrap().clone(),
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),

@@ -48,6 +48,7 @@ pub struct Config {
     pub frenzy_duration: f32,
     pub bulwark_duration: f32,
     pub sync_interval_ms: u64,
+    pub cast_leeway_ms: u64,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -58,6 +59,7 @@ impl Default for Config {
             frenzy_duration: 20.0,
             bulwark_duration: 10.0,
             sync_interval_ms: 500,
+            cast_leeway_ms: 500,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),

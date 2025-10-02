@@ -106,6 +106,7 @@ fn main() -> windows::core::Result<()> {
         let simulation = if args.debug_sim {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
+                cfg.cast_leeway_ms,
                 active_window,
                 rotation,
                 Box::new(DebugObj::new(CharState::Fighting)),
@@ -115,6 +116,7 @@ fn main() -> windows::core::Result<()> {
         } else {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
+                cfg.cast_leeway_ms,
                 active_window,
                 rotation,
                 Box::new(WindowObj::new(hwnd_opt)),
