@@ -15,6 +15,8 @@ pub struct Args {
     pub debug_mouse: bool,
     #[arg(long = "debug-interval", default_value = "1000")]
     pub debug_interval_ms: u64,
+    #[arg(long = "debug-sim", default_value = "false")]
+    pub debug_sim: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Copy, Clone)]

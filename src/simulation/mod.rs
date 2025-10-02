@@ -32,6 +32,9 @@ pub struct WindowObj {
     hwnd: Option<HWND>,
 }
 
+unsafe impl Send for WindowObj {}
+unsafe impl Sync for WindowObj {}
+
 impl WindowObj {
     pub fn new(hwnd: Option<HWND>) -> WindowObj {
         Self { hwnd }

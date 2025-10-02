@@ -15,10 +15,6 @@ pub struct Skill {
 const GCD: f32 = 2.5;
 
 impl Skill {
-    pub fn has_gcd(&self) -> bool {
-        self.cast_time == 0.0
-    }
-
     pub fn get_gcd(&self) -> f32 {
         //TODO: measure enchanter impact
         GCD

@@ -4,7 +4,7 @@ mod win_util;
 
 use crate::config::{Args, load_config};
 use crate::simulation::rotation::Rotations;
-use crate::simulation::{CharState, DebugObj, Rotation, SimulationState};
+use crate::simulation::{CharState, DebugObj, Rotation, SimulationState, WindowObj};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
 };
@@ -101,13 +101,23 @@ fn main() -> windows::core::Result<()> {
 
         let rotation = Rotation::get_rotation(active_window.class, &cfg);
 
-        let simulation = Arc::new(SimulationState::new(
-            cfg.sync_interval_ms,
-            active_window,
-            rotation,
-            Box::new(DebugObj::new(CharState::Fighting)),
-            Box::new(DebugObj::new(CharState::Fighting)),
-        ));
+        let simulation = if args.debug_sim {
+            Arc::new(SimulationState::new(
+                cfg.sync_interval_ms,
+                active_window,
+                rotation,
+                Box::new(DebugObj::new(CharState::Fighting)),
+                Box::new(DebugObj::new(CharState::Fighting)),
+            ))
+        } else {
+            Arc::new(SimulationState::new(
+                cfg.sync_interval_ms,
+                active_window,
+                rotation,
+                Box::new(WindowObj::new(hwnd_opt)),
+                Box::new(WindowObj::new(hwnd_opt)),
+            ))
+        };
 
         let handle = thread::spawn({
             let sim = Arc::clone(&simulation);
