@@ -13,7 +13,7 @@ impl SharedState {
     }
 
     pub fn set_skill_haste(&mut self, state: bool) {
-        println!("Skill haste applied: {}", state);
+        println!("Skill haste available changed to: {}", state);
         self.skill_haste_buff_applied = state;
     }
 

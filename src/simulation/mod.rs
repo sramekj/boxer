@@ -99,14 +99,14 @@ impl SimulationState {
                         // if we can cast (or buff/debuff is down)
                         if self.skill_tracker.should_cast(&skill, state) {
                             // try to cast
-                            self.skill_caster.cast(&skill);
-                            let ms = if skill.cast_time(self.shared_state.clone()) > 0.0 {
+                            let cast_result = self.skill_caster.cast(&skill);
+                            let cast_time = skill.cast_time(self.shared_state.clone());
+                            let ms = if cast_time > 0.0 {
                                 //let's wait for a cast time duration
-                                let ms =
-                                    (skill.cast_time(self.shared_state.clone()) * 1000.0) as u64;
+                                let ms = (cast_time * 1000.0) as u64;
                                 println!(
-                                    "Casting for {} seconds",
-                                    skill.cast_time(self.shared_state.clone())
+                                    "Casting for {} seconds with cast result: {}",
+                                    cast_time, cast_result
                                 );
                                 ms
                             } else {
