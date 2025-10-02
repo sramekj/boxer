@@ -206,9 +206,9 @@ pub fn debug_mouse_color(hwnd: HWND) {
             }
         }
 
-        if !debug_rectangle(Some(hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
-            eprintln!("Failed to draw a rectangle");
-        }
+        // if !debug_rectangle(Some(hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
+        //     eprintln!("Failed to draw a rectangle");
+        // }
     }
 }
 

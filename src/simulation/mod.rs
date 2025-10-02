@@ -104,54 +104,57 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
                 continue;
             }
-            let mut casted = false;
-            let mut looted = false;
+            let mut skip_wait = false;
             let state = self.state_checker.get_state();
             match state {
                 CharState::InTown | CharState::Unknown => {
                     // do nothing
                 }
                 _ => {
-                    // try to cast - go through all skills, they are sorted by priority
-                    self.rotation.skills.clone().into_iter().for_each(|skill| {
-                        // if we can cast (or buff/debuff is down)
-                        if self.skill_tracker.should_cast(&skill, state) {
-                            // try to cast
-                            let cast_result = self.skill_caster.cast_skill(&skill);
-                            let cast_time = skill.cast_time(self.shared_state.clone());
-                            let ms = if cast_time > 0.0 {
-                                //let's wait for a cast time duration
-                                let ms = (cast_time * 1000.0) as u64;
-                                println!(
-                                    "Casting for {} seconds with cast result: {}",
-                                    cast_time, cast_result
-                                );
-                                ms
-                            } else {
-                                let ms = (skill.get_gcd() * 1000.0) as u64;
-                                println!(
-                                    "Casting instant and waiting for GCD for {} seconds",
-                                    skill.get_gcd()
-                                );
-                                ms
-                            };
-                            thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
-                            // and track the cooldown
-                            self.skill_tracker.track_cast(&skill);
-                            casted = true;
+                    if state == CharState::AtShrine {
+                        if self.skill_caster.interact() {
+                            println!("Interacted with shrine")
                         }
-                    });
+                    }
                     if state == CharState::Looting {
                         // TODO: implement looting
 
-                        looted = true;
+                        skip_wait = true;
                     }
-                    if state == CharState::AtShrine {
-                        // TODO: implement shrine
+                    if state != CharState::Dead {
+                        // try to cast - go through all skills, they are sorted by priority
+                        self.rotation.skills.clone().into_iter().for_each(|skill| {
+                            // if we can cast (or buff/debuff is down)
+                            if self.skill_tracker.should_cast(&skill, state) {
+                                // try to cast
+                                let cast_result = self.skill_caster.cast_skill(&skill);
+                                let cast_time = skill.cast_time(self.shared_state.clone());
+                                let ms = if cast_time > 0.0 {
+                                    //let's wait for a cast time duration
+                                    let ms = (cast_time * 1000.0) as u64;
+                                    println!(
+                                        "Casting for {} seconds with cast result: {}",
+                                        cast_time, cast_result
+                                    );
+                                    ms
+                                } else {
+                                    let ms = (skill.get_gcd() * 1000.0) as u64;
+                                    println!(
+                                        "Casting instant and waiting for GCD for {} seconds",
+                                        skill.get_gcd()
+                                    );
+                                    ms
+                                };
+                                thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
+                                // and track the cooldown
+                                self.skill_tracker.track_cast(&skill);
+                                skip_wait = true;
+                            }
+                        });
                     }
                 }
             }
-            if !casted && !looted {
+            if !skip_wait {
                 println!("Sync sleep for {} ms", self.sync_interval_ms);
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
