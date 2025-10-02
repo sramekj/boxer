@@ -93,9 +93,6 @@ fn main() -> windows::core::Result<()> {
                 win_config.window_height,
             )
             .expect("Failed to set window position");
-            if !focus_window(hwnd_opt).as_bool() {
-                println!("Could not focus a window");
-            }
         }
     });
 

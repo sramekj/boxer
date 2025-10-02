@@ -36,12 +36,16 @@ pub trait SkillCaster {
     fn cast(&self, skill: &Skill) -> bool;
 }
 
-pub struct DebugObj {}
+pub struct DebugObj {
+    test_state: CharState,
+}
+
 impl DebugObj {
-    pub fn new() -> DebugObj {
-        DebugObj {}
+    pub fn new(test_state: CharState) -> DebugObj {
+        DebugObj { test_state }
     }
 }
+
 pub struct WindowObj {
     hwnd: Option<HWND>,
 }
@@ -69,7 +73,7 @@ impl SkillCaster for WindowObj {
 impl StateChecker for DebugObj {
     fn get_state(&self) -> CharState {
         println!("Getting state");
-        let state = CharState::Fighting;
+        let state = self.test_state;
         println!("Setting state to {:?}", state);
         state
     }
@@ -103,6 +107,7 @@ impl Skill {
     }
 
     pub fn get_gcd(&self) -> f32 {
+        //TODO: measure enchanter impact
         GCD
     }
 
@@ -344,7 +349,7 @@ impl SkillTracker {
         let now = Instant::now();
         if let Some(last_cast) = self.last_cast.get(&skill.name) {
             let diff = now - *last_cast;
-            if diff.as_secs_f32() <= skill.cooldown {
+            if diff.as_secs_f32() < skill.cooldown {
                 println!(
                     "WARN: trying to cast {} which should still be on a cooldown",
                     skill.name
@@ -376,51 +381,54 @@ impl SkillTracker {
             Some(last_cast) => {
                 let now = Instant::now();
                 let diff = now - *last_cast;
-                let cooldown = if skill.has_gcd() {
-                    skill.cooldown.max(skill.get_gcd())
-                } else {
-                    skill.cooldown
-                };
-                diff.as_secs_f32() > cooldown
+                diff.as_secs_f32() < skill.cooldown
             }
         }
     }
 
     pub fn can_cast(&self, skill: &Skill, state: CharState) -> bool {
-        let result = !self.is_on_cooldown(skill) && skill.can_cast(state);
+        let is_on_cooldown = self.is_on_cooldown(skill);
+        let can_cast = skill.can_cast(state);
+        let result = !is_on_cooldown && can_cast;
         println!(
-            "Checking ability to cast: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
-            skill.name,
-            self.is_on_cooldown(skill),
-            skill.can_cast(state),
-            result
+            "Checking ability: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
+            skill.name, is_on_cooldown, can_cast, result
         );
         result
     }
 
     pub fn should_cast(&self, skill: &Skill, state: CharState) -> bool {
-        if !self.can_cast(skill, state) {
-            return false;
-        }
-        let result = match skill.skill_type {
-            SkillType::Buff => !self.has_buff_applied(skill),
-            SkillType::Debuff => !self.has_debuff_applied(skill),
+        let should_attack = match skill.skill_type {
+            SkillType::Buff => {
+                let result = !self.has_buff_applied(skill);
+                if result {
+                    println!("Buff {} expired", skill.name);
+                } else {
+                    println!("Buff {} is still applied", skill.name);
+                }
+                result
+            }
+            SkillType::Debuff => {
+                let result = !self.has_debuff_applied(skill);
+                if result {
+                    println!("Debuff {} expired", skill.name);
+                } else {
+                    println!("Debuff {} is still applied", skill.name);
+                }
+                result
+            }
             SkillType::Attack => true,
         };
-        if skill.skill_type != SkillType::Attack {
-            if result {
-                println!("Buff or debuff {} expired", skill.name);
-            } else {
-                println!("Buff or debuff {} is still applied", skill.name);
-            }
-        }
-        result
+        self.can_cast(skill, state) && should_attack
     }
+
+    //TODO: change to 5.0 after testing
+    const BUFF_DEBUFF_DURATION_TOLERANCE: u64 = 0;
 
     pub fn has_buff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
         if let Some(last_cast) = self.buff_tracker.get(&skill.name) {
-            let diff = now - *last_cast;
+            let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
             if let Some(buff_duration) = skill.buff_duration {
                 diff.as_secs_f32() < buff_duration
             } else {
@@ -434,7 +442,7 @@ impl SkillTracker {
     pub fn has_debuff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
         if let Some(last_cast) = self.debuff_tracker.get(&skill.name) {
-            let diff = now - *last_cast;
+            let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
             if let Some(debuff_duration) = skill.debuff_duration {
                 diff.as_secs_f32() < debuff_duration
             } else {
@@ -483,6 +491,7 @@ impl SimulationState {
         let is_running = self.is_running.clone();
         while is_running.load(Ordering::SeqCst) {
             let mut casted = false;
+            let mut looted = false;
             let state = self.state_checker.get_state();
             match state {
                 CharState::InTown => {
@@ -495,12 +504,20 @@ impl SimulationState {
                         if self.skill_tracker.should_cast(&skill, state) {
                             // try to cast
                             self.skill_caster.cast(&skill);
-                            if skill.cast_time > 0.0 {
+                            let ms = if skill.cast_time > 0.0 {
                                 //let's wait for a cast time duration
                                 let ms = (skill.cast_time * 1000.0) as u64;
-                                println!("Waiting {} seconds", skill.cast_time);
-                                thread::sleep(Duration::from_millis(ms));
-                            }
+                                println!("Casting for {} seconds", skill.cast_time);
+                                ms
+                            } else {
+                                let ms = (skill.get_gcd() * 1000.0) as u64;
+                                println!(
+                                    "Casting instant and waiting for GCD for {} seconds",
+                                    skill.get_gcd()
+                                );
+                                ms
+                            };
+                            thread::sleep(Duration::from_millis(ms));
                             // and track the cooldown
                             self.skill_tracker.track_cast(&skill);
                             casted = true;
@@ -508,10 +525,12 @@ impl SimulationState {
                     });
                     if state == CharState::Looting {
                         // TODO: implement looting
+
+                        looted = true;
                     }
                 }
             }
-            if !casted {
+            if !casted && !looted {
                 println!("Sync sleep for {} ms", self.sync_interval_ms);
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
@@ -527,7 +546,9 @@ impl SimulationState {
 #[cfg(test)]
 mod tests {
     use crate::config::{Class, Config};
-    use crate::simulation::{DebugObj, Rotation, Rotations, SimulationState, SkillTracker};
+    use crate::simulation::{
+        CharState, DebugObj, Rotation, Rotations, SimulationState, SkillTracker,
+    };
 
     #[test]
     fn test_simulation() {
@@ -540,8 +561,8 @@ mod tests {
             cfg.windows.first().unwrap().clone(),
             rotation,
             SkillTracker::new(),
-            Box::new(DebugObj::new()),
-            Box::new(DebugObj::new()),
+            Box::new(DebugObj::new(CharState::Fighting)),
+            Box::new(DebugObj::new(CharState::Fighting)),
         );
 
         simulation.run();
