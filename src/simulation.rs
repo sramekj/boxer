@@ -577,6 +577,7 @@ mod tests {
             Box::new(DebugObj::new(CharState::Fighting)),
         );
 
+        simulation.enable_toggle();
         simulation.run();
     }
 }
