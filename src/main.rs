@@ -9,7 +9,7 @@ use crate::win_util::{
     debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
 };
 use clap::Parser;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
