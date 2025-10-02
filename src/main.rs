@@ -144,6 +144,7 @@ fn main() -> windows::core::Result<()> {
                     HOTKEY_DEL_ID => {
                         simulations.iter().for_each(|sim| {
                             sim.enable_toggle();
+                            thread::sleep(Duration::from_millis(cfg.start_offset_ms));
                         });
                     }
                     HOTKEY_ESC_ID => {
