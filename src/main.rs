@@ -2,14 +2,13 @@ pub mod config;
 mod simulation;
 mod win_util;
 
-use crate::config::{Args, Class, Config, WindowConfig, load_config};
-use crate::simulation::{CharState, DebugObj, Rotation, Rotations, SimulationState, SkillTracker};
+use crate::config::{Args, load_config};
+use crate::simulation::{CharState, DebugObj, Rotation, Rotations, SimulationState};
 use crate::win_util::{
-    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, focus_window, set_window,
+    debug_mouse, debug_mouse_color, enum_windows, find_window_by_title, set_window,
 };
 use clap::Parser;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -58,11 +57,6 @@ fn main() -> windows::core::Result<()> {
         return Ok(());
     }
 
-    let enabled = Arc::new(AtomicBool::new(false));
-    let running = Arc::new(AtomicBool::new(true));
-    let running_clone = running.clone();
-    let enabled_clone = enabled.clone();
-
     const HOTKEY_DEL_ID: i32 = 1;
     const HOTKEY_ESC_ID: i32 = 2;
 
@@ -77,44 +71,53 @@ fn main() -> windows::core::Result<()> {
     println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
-    let mut simulations: Vec<SimulationState> = vec![];
+    let mut simulations: Vec<Arc<Mutex<SimulationState>>> = vec![];
 
-    let active_windows = cfg.windows.iter().filter(|x| x.active);
-    active_windows.for_each(|win_config| {
-        let mut hwnd_opt = match &win_config.title {
+    let active_windows = cfg
+        .windows
+        .iter()
+        .filter(|x| x.active)
+        .cloned()
+        .collect::<Vec<_>>();
+    for active_window in active_windows {
+        let mut hwnd_opt = match &active_window.title {
             Some(title) => find_window_by_title(title),
             _ => None,
         };
         if hwnd_opt.is_none() {
-            hwnd_opt = win_config.hwnd
+            hwnd_opt = active_window.hwnd
         }
         if let Some(hwnd) = hwnd_opt {
             set_window(
                 hwnd,
-                win_config.position_x,
-                win_config.position_y,
-                win_config.window_width,
-                win_config.window_height,
+                active_window.position_x,
+                active_window.position_y,
+                active_window.window_width,
+                active_window.window_height,
             )
             .expect("Failed to set window position");
         }
 
-        let rotation = Rotation::get_rotation(win_config.class, &cfg);
+        let rotation = Rotation::get_rotation(active_window.class, &cfg);
 
-        let mut simulation = SimulationState::new(
+        let simulation = Arc::new(Mutex::new(SimulationState::new(
             cfg.sync_interval_ms,
-            win_config,
+            active_window,
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
-        );
-        simulations.push(simulation);
+        )));
 
-        let handle = thread::spawn(move || {
-            simulation.run();
+        let handle = thread::spawn({
+            let sim = Arc::clone(&simulation);
+            simulations.push(simulation);
+            move || {
+                let mut sim = sim.lock().unwrap();
+                sim.run();
+            }
         });
         handles.push(handle);
-    });
+    }
 
     let mut msg = MSG::default();
     unsafe {
@@ -123,10 +126,16 @@ fn main() -> windows::core::Result<()> {
                 let id = msg.wParam.0 as i32;
                 match id {
                     HOTKEY_DEL_ID => {
-                        simulations.iter().for_each(|sim| sim.enable_toggle());
+                        simulations.iter().for_each(|sim| {
+                            let sim = sim.lock().unwrap();
+                            sim.enable_toggle();
+                        });
                     }
                     HOTKEY_ESC_ID => {
-                        simulations.iter().for_each(|sim| sim.stop());
+                        simulations.iter().for_each(|sim| {
+                            let sim = sim.lock().unwrap();
+                            sim.stop();
+                        });
                         println!("Quitting application...");
                         break;
                     }

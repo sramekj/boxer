@@ -120,7 +120,7 @@ impl Skill {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Rotation {
     pub skills: Vec<Skill>,
 }
@@ -329,7 +329,7 @@ impl Rotations<Class> for Rotation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SkillTracker {
     last_cast: HashMap<String, Instant>,
     buff_tracker: HashMap<String, Instant>,
@@ -454,25 +454,24 @@ impl SkillTracker {
     }
 }
 
-pub struct SimulationState<'a> {
+pub struct SimulationState {
     pub is_running: Arc<AtomicBool>,
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
-    pub window_config: &'a WindowConfig,
+    pub window_config: WindowConfig,
     pub rotation: Rotation,
-    pub state: CharState,
     pub skill_tracker: SkillTracker,
-    pub skill_caster: Box<dyn SkillCaster>,
-    pub state_checker: Box<dyn StateChecker>,
+    pub skill_caster: Box<dyn SkillCaster + Send + Sync>,
+    pub state_checker: Box<dyn StateChecker + Send + Sync>,
 }
 
-impl<'a> SimulationState<'a> {
+impl SimulationState {
     pub fn new(
         sync_interval_ms: u64,
-        window_config: &'a WindowConfig,
+        window_config: WindowConfig,
         rotation: Rotation,
-        skill_caster: Box<dyn SkillCaster>,
-        state_checker: Box<dyn StateChecker>,
+        skill_caster: Box<dyn SkillCaster + Send + Sync>,
+        state_checker: Box<dyn StateChecker + Send + Sync>,
     ) -> Self {
         SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
@@ -480,7 +479,6 @@ impl<'a> SimulationState<'a> {
             sync_interval_ms,
             window_config,
             rotation,
-            state: CharState::InTown,
             skill_tracker: SkillTracker::new(),
             skill_caster,
             state_checker,
@@ -561,9 +559,7 @@ impl<'a> SimulationState<'a> {
 #[cfg(test)]
 mod tests {
     use crate::config::{Class, Config};
-    use crate::simulation::{
-        CharState, DebugObj, Rotation, Rotations, SimulationState, SkillTracker,
-    };
+    use crate::simulation::{CharState, DebugObj, Rotation, Rotations, SimulationState};
 
     #[test]
     fn test_simulation() {
@@ -573,7 +569,7 @@ mod tests {
 
         let mut simulation = SimulationState::new(
             cfg.sync_interval_ms,
-            &cfg.windows.first().unwrap(),
+            cfg.windows.first().unwrap().clone(),
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
