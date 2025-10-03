@@ -20,9 +20,11 @@ impl StateChecker for WindowObj {
         println!("Getting state");
         let mut state = CharState::Unknown;
 
-        if let Some(s) = check_location(self.hwnd, get_town_marker(), CharState::InTown) {
+        if let Some(s) = check_location(self.hwnd, get_loot_marker(), CharState::Looting) {
             state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_loot_marker(), CharState::Looting) {
+        } else if let Some(s) = check_location(self.hwnd, get_town_marker(), CharState::InTown) {
+            state = s;
+        } else if let Some(s) = check_location(self.hwnd, get_dead_marker(), CharState::Dead) {
             state = s;
         } else if let Some(s) = check_location(self.hwnd, get_shrine1_marker(), CharState::AtShrine)
         {
@@ -86,6 +88,8 @@ fn get_shrine1_marker() -> Location {
             PixelColor(0xF0F0F0),
             PixelColor(0xFFFFFF),
             PixelColor(0x666666),
+            PixelColor(0x5C6263),
+            PixelColor(0x6D7677),
         ],
     )
 }
@@ -113,3 +117,9 @@ fn get_loot_marker() -> Location {
 fn get_fight_marker() -> Location {
     Location(1231, 598, vec![PixelColor(0x4D2209)])
 }
+
+fn get_dead_marker() -> Location {
+    Location(597, 623, vec![PixelColor(0x313131)])
+}
+
+//LOOT: window[519, 506]    Color: #959595   normal
