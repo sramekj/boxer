@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
 const DEBUG_RUNE_COLOR: bool = false;
-const DEBUG_LOCATION_COLOR: bool = false;
+const DEBUG_LOCATION_COLOR: bool = true;
 
 pub trait StateChecker {
     fn get_state(&self) -> CharState;
@@ -175,7 +175,16 @@ fn check_location<T>(
 struct Location(i32, i32, Vec<PixelColor>);
 
 fn get_town_marker() -> Location {
-    Location(1127, 11, vec![PixelColor(0x00D5FE), PixelColor(0x03CEF6)])
+    Location(
+        1127,
+        11,
+        vec![
+            PixelColor(0x00D5FE),
+            PixelColor(0x03CEF6),
+            PixelColor(0x05C7EE),
+            PixelColor(0x0CB2D6),
+        ],
+    )
 }
 
 fn get_dungeon_marker() -> Location {

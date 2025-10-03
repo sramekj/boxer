@@ -62,7 +62,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            skill_haste_percent: 13.0,
+            skill_haste_percent: 16.0,
             frenzy_duration: 20.0,
             bulwark_duration: 10.0,
             sync_interval_ms: 500,
@@ -80,11 +80,7 @@ impl Default for Config {
                     master: false,
                     class_config: ClassConfig::new(
                         Class::Enchanter,
-                        Some(vec![
-                            "Augmentation".to_string(),
-                            "Phase Blade".to_string(),
-                            "Clarity".to_string(),
-                        ]),
+                        Some(vec!["Augmentation".to_string(), "Clarity".to_string()]),
                         vec![
                             LootQuality::Normal,
                             LootQuality::Socketed,
