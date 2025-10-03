@@ -52,6 +52,7 @@ unsafe impl Sync for WindowConfig {}
 pub struct Config {
     pub skill_haste_percent: f32,
     pub frenzy_duration: f32,
+    pub frenzy_haste_percent: f32,
     pub bulwark_duration: f32,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
@@ -64,6 +65,7 @@ impl Default for Config {
         Config {
             skill_haste_percent: 16.0,
             frenzy_duration: 20.0,
+            frenzy_haste_percent: 15.0,
             bulwark_duration: 10.0,
             sync_interval_ms: 500,
             cast_leeway_ms: 500,
@@ -81,10 +83,9 @@ impl Default for Config {
                     class_config: ClassConfig::new(
                         Class::Enchanter,
                         Some(vec!["Augmentation".to_string(), "Clarity".to_string()]),
+                        None,
                         vec![
-                            LootQuality::Normal,
                             LootQuality::Socketed,
-                            LootQuality::Magic,
                             LootQuality::Rare,
                             LootQuality::Epic,
                             LootQuality::Set,
@@ -104,10 +105,9 @@ impl Default for Config {
                     class_config: ClassConfig::new(
                         Class::Warlock,
                         None,
+                        None,
                         vec![
-                            LootQuality::Normal,
                             LootQuality::Socketed,
-                            LootQuality::Magic,
                             LootQuality::Rare,
                             LootQuality::Epic,
                             LootQuality::Set,
@@ -127,10 +127,13 @@ impl Default for Config {
                     class_config: ClassConfig::new(
                         Class::Warrior,
                         None,
+                        Some(vec![
+                            "Frenzy".to_string(),
+                            "Bulwark".to_string(),
+                            "Double Throw".to_string(),
+                        ]),
                         vec![
-                            LootQuality::Normal,
                             LootQuality::Socketed,
-                            LootQuality::Magic,
                             LootQuality::Rare,
                             LootQuality::Epic,
                             LootQuality::Set,

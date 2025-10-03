@@ -224,12 +224,24 @@ impl SimulationState {
             );
             ms
         } else {
-            let ms = (skill.get_gcd() * 1000.0) as u64;
-            println!(
-                "Casting instant and waiting for GCD for {} seconds",
-                skill.get_gcd()
-            );
-            ms
+            if self
+                .window_config
+                .class_config
+                .no_gcd_skills
+                .clone()
+                .is_some_and(|skills| skills.contains(&skill.name))
+            {
+                //no gcd skill
+                println!("Casting non-GCD instant");
+                0
+            } else {
+                let ms = (skill.get_gcd() * 1000.0) as u64;
+                println!(
+                    "Casting instant and waiting for GCD for {} seconds",
+                    skill.get_gcd()
+                );
+                ms
+            }
         };
         thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
     }

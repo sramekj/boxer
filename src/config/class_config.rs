@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct ClassConfig {
     pub class: Class,
     pub cast_all_skills: Option<Vec<String>>,
+    pub no_gcd_skills: Option<Vec<String>>,
     pub loot_filter: Vec<LootQuality>,
 }
 
@@ -13,11 +14,13 @@ impl ClassConfig {
     pub fn new(
         class: Class,
         cast_all_skills: Option<Vec<String>>,
+        no_gcd_skills: Option<Vec<String>>,
         loot_filter: Vec<LootQuality>,
     ) -> ClassConfig {
         ClassConfig {
             class,
             cast_all_skills,
+            no_gcd_skills,
             loot_filter,
         }
     }
