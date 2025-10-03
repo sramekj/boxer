@@ -122,8 +122,11 @@ impl SimulationState {
             let mut skip_wait = false;
             let state = self.state_checker.get_state();
             match state {
-                CharState::InTown | CharState::Unknown => {
+                CharState::Unknown => {
                     // do nothing
+                }
+                CharState::InTown => {
+                    self.skill_tracker.reset();
                 }
                 _ => {
                     if state == CharState::AtShrine && self.interactor.interact() {
@@ -173,6 +176,8 @@ impl SimulationState {
                                 skip_wait = true;
                             }
                         });
+                    } else {
+                        self.skill_tracker.reset();
                     }
                 }
             }
