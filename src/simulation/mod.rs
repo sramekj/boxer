@@ -1,6 +1,7 @@
 pub mod char_state;
 mod interactor;
 pub mod keys;
+mod loot;
 pub mod rotation;
 pub(crate) mod shared_state;
 mod skill;
@@ -81,6 +82,9 @@ impl SimulationState {
         }
     }
 
+    pub fn is_master(&self) -> bool {
+        self.window_config.master
+    }
     pub fn debug_checker(&self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
@@ -113,7 +117,7 @@ impl SimulationState {
                 _ => {
                     if state == CharState::AtShrine {
                         if self.skill_caster.interact() {
-                            println!("Interacted with shrine")
+                            println!("Interacted with a shrine")
                         }
                     }
                     if state == CharState::Looting {

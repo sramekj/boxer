@@ -38,6 +38,7 @@ pub struct WindowConfig {
     pub position_x: i32,
     pub position_y: i32,
     pub active: bool,
+    pub master: bool,
     pub class: Class,
 }
 
@@ -73,6 +74,7 @@ impl Default for Config {
                     position_x: 2560,
                     position_y: 0,
                     active: true,
+                    master: false,
                     class: Class::Enchanter,
                 },
                 WindowConfig {
@@ -83,6 +85,7 @@ impl Default for Config {
                     position_x: 1280,
                     position_y: 0,
                     active: true,
+                    master: false,
                     class: Class::Warlock,
                 },
                 WindowConfig {
@@ -93,6 +96,7 @@ impl Default for Config {
                     position_x: 0,
                     position_y: 0,
                     active: true,
+                    master: true,
                     class: Class::Warrior,
                 },
             ],

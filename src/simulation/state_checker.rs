@@ -64,7 +64,7 @@ fn check_location(
     None
 }
 
-//x, y, vector of colors (or), vector of must not match colors (!)
+//x, y, vector of colors (or)
 struct Location(i32, i32, Vec<PixelColor>);
 
 fn get_town_marker() -> Location {
