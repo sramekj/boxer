@@ -130,8 +130,17 @@ impl SimulationState {
                         println!("Interacted with a shrine");
                     }
                     if state == CharState::Looting {
-                        // TODO: implement looting
-
+                        println!("Initiate looting...");
+                        loop {
+                            //keep looting until the state changes, or we failed to loot (needs manual intervention)
+                            let looted = self.loot_cycle();
+                            thread::sleep(Duration::from_millis(50));
+                            let new_state = self.state_checker.get_state();
+                            if !looted || new_state != CharState::Looting {
+                                println!("Looting ended");
+                                break;
+                            }
+                        }
                         skip_wait = true;
                     }
                     if state != CharState::Dead {
@@ -172,6 +181,29 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
             println!("Simulation cycle finished")
+        }
+    }
+
+    fn loot_cycle(&self) -> bool {
+        let quality = self.state_checker.get_loot_quality();
+        if quality == LootQuality::Unknown {
+            //could not figure out quality... cannot loot (needs a manual intervention)
+            return false;
+        }
+        //we always loot runes
+        if quality == LootQuality::Normal && self.state_checker.is_rune() {
+            return self.interactor.interact();
+        }
+        //now loot according to the loot filter
+        if self
+            .window_config
+            .class_config
+            .loot_filter
+            .contains(&quality)
+        {
+            self.interactor.interact()
+        } else {
+            self.interactor.discard()
         }
     }
 
