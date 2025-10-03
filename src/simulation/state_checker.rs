@@ -1,9 +1,12 @@
+use crate::simulation::loot::LootQuality;
 use crate::simulation::{CharState, DebugObj, WindowObj};
 use crate::win_util::{PixelColor, focus_window, get_pixel_color_local};
+use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
 pub trait StateChecker {
     fn get_state(&self) -> CharState;
+    fn get_loot_quality(&self) -> LootQuality;
 }
 
 impl StateChecker for DebugObj {
@@ -12,6 +15,13 @@ impl StateChecker for DebugObj {
         let state = self.test_state;
         println!("New state:  {:?}", state);
         state
+    }
+
+    fn get_loot_quality(&self) -> LootQuality {
+        println!("Getting loot quality");
+        let quality = LootQuality::Epic;
+        println!("Loot quality: {:?}", quality);
+        quality
     }
 }
 
@@ -52,13 +62,22 @@ impl StateChecker for WindowObj {
         println!("New state: {:?}", state);
         state
     }
+
+    fn get_loot_quality(&self) -> LootQuality {
+        println!("Getting loot quality");
+        let mut quality = LootQuality::Unknown;
+        for (loc, q) in get_loot_quality_markers() {
+            if let Some(q) = check_location(self.hwnd, loc, q) {
+                quality = q;
+                break;
+            }
+        }
+        println!("Loot quality: {:?}", quality);
+        quality
+    }
 }
 
-fn check_location(
-    hwnd: Option<HWND>,
-    location: Location,
-    result_state: CharState,
-) -> Option<CharState> {
+fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) -> Option<T> {
     _ = focus_window(hwnd).as_bool();
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
         println!("Found color: {}", color);
@@ -70,6 +89,7 @@ fn check_location(
 }
 
 //x, y, vector of colors (or)
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct Location(i32, i32, Vec<PixelColor>);
 
 fn get_town_marker() -> Location {
@@ -122,4 +142,15 @@ fn get_dead_marker() -> Location {
     Location(597, 623, vec![PixelColor(0x313131)])
 }
 
-//LOOT: window[519, 506]    Color: #959595   normal
+fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
+    let mut hm: HashMap<Location, LootQuality> = HashMap::new();
+    hm.insert(
+        Location(519, 506, vec![PixelColor(0x959595)]),
+        LootQuality::Normal,
+    );
+    hm.insert(
+        Location(519, 506, vec![PixelColor(0xFFC034)]),
+        LootQuality::Magic,
+    );
+    hm
+}
