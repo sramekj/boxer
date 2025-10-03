@@ -36,32 +36,42 @@ impl StateChecker for WindowObj {
         println!("Getting state");
         let mut state = CharState::Unknown;
 
-        if let Some(s) = check_location(self.hwnd, get_loot_marker(), CharState::Looting) {
+        if let Some(s) = check_location(self.hwnd, get_loot_marker(), CharState::Looting, true) {
             state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_town_marker(), CharState::InTown) {
-            state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_dead_marker(), CharState::Dead) {
-            state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_shrine1_marker(), CharState::AtShrine)
+        } else if let Some(s) =
+            check_location(self.hwnd, get_town_marker(), CharState::InTown, true)
         {
             state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_shrine2_marker(), CharState::AtShrine)
-        {
-            state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_shrine3_marker(), CharState::AtShrine)
-        {
-            state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_shrine4_marker(), CharState::AtShrine)
-        {
-            state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_shrine5_marker(), CharState::AtShrine)
+        } else if let Some(s) = check_location(self.hwnd, get_dead_marker(), CharState::Dead, true)
         {
             state = s;
         } else if let Some(s) =
-            check_location(self.hwnd, get_dungeon_marker(), CharState::InDungeon)
+            check_location(self.hwnd, get_shrine1_marker(), CharState::AtShrine, true)
         {
             state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_fight_marker(), CharState::Fighting) {
+        } else if let Some(s) =
+            check_location(self.hwnd, get_shrine2_marker(), CharState::AtShrine, true)
+        {
+            state = s;
+        } else if let Some(s) =
+            check_location(self.hwnd, get_shrine3_marker(), CharState::AtShrine, true)
+        {
+            state = s;
+        } else if let Some(s) =
+            check_location(self.hwnd, get_shrine4_marker(), CharState::AtShrine, true)
+        {
+            state = s;
+        } else if let Some(s) =
+            check_location(self.hwnd, get_shrine5_marker(), CharState::AtShrine, true)
+        {
+            state = s;
+        } else if let Some(s) =
+            check_location(self.hwnd, get_dungeon_marker(), CharState::InDungeon, true)
+        {
+            state = s;
+        } else if let Some(s) =
+            check_location(self.hwnd, get_fight_marker(), CharState::Fighting, true)
+        {
             state = s;
         }
 
@@ -73,7 +83,7 @@ impl StateChecker for WindowObj {
         println!("Getting loot quality");
         let mut quality = LootQuality::Unknown;
         for (loc, q) in get_loot_quality_markers() {
-            if let Some(q) = check_location(self.hwnd, loc, q) {
+            if let Some(q) = check_location(self.hwnd, loc, q, true) {
                 quality = q;
                 break;
             }
@@ -91,7 +101,7 @@ impl StateChecker for WindowObj {
         _ = focus_window(self.hwnd).as_bool();
         let result = locations
             .iter()
-            .any(|loc| check_location_no_focus(self.hwnd, loc.clone(), true).is_some());
+            .any(|loc| check_location_no_focus(self.hwnd, loc.clone(), true, false).is_some());
         println!("Is rune: {:?}", result);
         result
     }
@@ -101,9 +111,12 @@ fn check_location_no_focus<T>(
     hwnd: Option<HWND>,
     location: Location,
     result_state: T,
+    debug_color: bool,
 ) -> Option<T> {
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
-        println!("Found color: {}", color);
+        if debug_color {
+            println!("Found color: {}", color);
+        }
         if location.2.iter().any(|c| *c == color) {
             return Some(result_state);
         }
@@ -111,9 +124,14 @@ fn check_location_no_focus<T>(
     None
 }
 
-fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) -> Option<T> {
+fn check_location<T>(
+    hwnd: Option<HWND>,
+    location: Location,
+    result_state: T,
+    debug_color: bool,
+) -> Option<T> {
     _ = focus_window(hwnd).as_bool();
-    check_location_no_focus(hwnd, location, result_state)
+    check_location_no_focus(hwnd, location, result_state, debug_color)
 }
 
 //x, y, vector of colors (or)
