@@ -14,6 +14,7 @@ pub(crate) use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
 pub(crate) use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedState;
+use crate::simulation::skill::Skill;
 use crate::simulation::skill_tracker::SkillTracker;
 use crate::simulation::state_checker::StateChecker;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -54,7 +55,7 @@ pub struct SimulationState {
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub skill_tracker: SkillTracker,
-    pub skill_caster: Box<dyn Interactor + Send + Sync>,
+    pub interactor: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
     pub shared_state: Arc<Mutex<SharedState>>,
 }
@@ -79,7 +80,7 @@ impl SimulationState {
             window_config,
             rotation,
             skill_tracker: SkillTracker::new(shared_state.clone()),
-            skill_caster,
+            interactor: skill_caster,
             state_checker,
             shared_state,
         }
@@ -119,7 +120,7 @@ impl SimulationState {
                 }
                 _ => {
                     if state == CharState::AtShrine {
-                        if self.skill_caster.interact() {
+                        if self.interactor.interact() {
                             println!("Interacted with a shrine")
                         }
                     }
@@ -133,26 +134,26 @@ impl SimulationState {
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
                             // if we can cast (or buff/debuff is down)
                             if self.skill_tracker.should_cast(&skill, state) {
-                                // try to cast
-                                let cast_result = self.skill_caster.cast_skill(&skill);
-                                let cast_time = skill.cast_time(self.shared_state.clone());
-                                let ms = if cast_time > 0.0 {
-                                    //let's wait for a cast time duration
-                                    let ms = (cast_time * 1000.0) as u64;
+                                if let Some(cast_all_skills) =
+                                    &self.window_config.class_config.cast_all_skills
+                                    && cast_all_skills.contains(&skill.name)
+                                    && self.num_active_characters > 1
+                                {
+                                    // let's buff other players
                                     println!(
-                                        "Casting for {} seconds with cast result: {}",
-                                        cast_time, cast_result
+                                        "Initiating buff sequence for {} in a party of {}",
+                                        skill.name, self.num_active_characters
                                     );
-                                    ms
+                                    for player_index in 0..self.num_active_characters {
+                                        self.interactor.target_player(player_index);
+                                        self.cast(&skill);
+                                    }
+                                    // re-target himself
+                                    self.interactor.target_player(0);
                                 } else {
-                                    let ms = (skill.get_gcd() * 1000.0) as u64;
-                                    println!(
-                                        "Casting instant and waiting for GCD for {} seconds",
-                                        skill.get_gcd()
-                                    );
-                                    ms
-                                };
-                                thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
+                                    // try to cast a single spell
+                                    self.cast(&skill);
+                                }
                                 // and track the cooldown
                                 self.skill_tracker.track_cast(&skill);
                                 skip_wait = true;
@@ -167,6 +168,28 @@ impl SimulationState {
             }
             println!("Simulation cycle finished")
         }
+    }
+
+    fn cast(&self, skill: &Skill) {
+        let cast_result = self.interactor.cast_skill(&skill);
+        let cast_time = skill.cast_time(self.shared_state.clone());
+        let ms = if cast_time > 0.0 {
+            //let's wait for a cast time duration
+            let ms = (cast_time * 1000.0) as u64;
+            println!(
+                "Casting for {} seconds with cast result: {}",
+                cast_time, cast_result
+            );
+            ms
+        } else {
+            let ms = (skill.get_gcd() * 1000.0) as u64;
+            println!(
+                "Casting instant and waiting for GCD for {} seconds",
+                skill.get_gcd()
+            );
+            ms
+        };
+        thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
     }
 
     pub fn enable_toggle(&self) {

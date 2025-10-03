@@ -1,4 +1,4 @@
-use crate::simulation::keys::{DISCARD, LOOT_INTERACT};
+use crate::simulation::keys::{DISCARD, Key, LOOT_INTERACT};
 use crate::simulation::skill::Skill;
 use crate::simulation::{DebugObj, WindowObj};
 use crate::win_util::{focus_window, send_key_vk};
@@ -7,6 +7,7 @@ pub trait Interactor {
     fn cast_skill(&self, skill: &Skill) -> bool;
     fn interact(&self) -> bool;
     fn discard(&self) -> bool;
+    fn target_player(&self, player_index: usize) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -22,6 +23,11 @@ impl Interactor for DebugObj {
 
     fn discard(&self) -> bool {
         println!("Discarding a looted item");
+        true
+    }
+
+    fn target_player(&self, player_index: usize) -> bool {
+        println!("Targeting player {}", player_index + 1);
         true
     }
 }
@@ -40,5 +46,14 @@ impl Interactor for WindowObj {
     fn discard(&self) -> bool {
         println!("Discarding a looted item");
         focus_window(self.hwnd).as_bool() && send_key_vk(DISCARD).is_ok()
+    }
+
+    fn target_player(&self, player_index: usize) -> bool {
+        println!("Targeting player {}", player_index + 1);
+        if let Some(key) = Key::get_party_keys().get(player_index) {
+            focus_window(self.hwnd).as_bool() && send_key_vk(*key).is_ok()
+        } else {
+            false
+        }
     }
 }
