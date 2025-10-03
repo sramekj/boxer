@@ -83,14 +83,25 @@ impl StateChecker for WindowObj {
     }
 
     fn is_rune(&self) -> bool {
-        let result = check_location(self.hwnd, get_rune_marker(), true).is_some();
+        let location_offset = -10..10;
+        let locations: Vec<_> = location_offset
+            .into_iter()
+            .map(|offset| Location(650 + offset, 488, vec![PixelColor(0x0091CB)]))
+            .collect();
+        _ = focus_window(self.hwnd).as_bool();
+        let result = locations
+            .iter()
+            .any(|loc| check_location_no_focus(self.hwnd, loc.clone(), true).is_some());
         println!("Is rune: {:?}", result);
         result
     }
 }
 
-fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) -> Option<T> {
-    _ = focus_window(hwnd).as_bool();
+fn check_location_no_focus<T>(
+    hwnd: Option<HWND>,
+    location: Location,
+    result_state: T,
+) -> Option<T> {
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
         println!("Found color: {}", color);
         if location.2.iter().any(|c| *c == color) {
@@ -98,6 +109,11 @@ fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) ->
         }
     }
     None
+}
+
+fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) -> Option<T> {
+    _ = focus_window(hwnd).as_bool();
+    check_location_no_focus(hwnd, location, result_state)
 }
 
 //x, y, vector of colors (or)
@@ -154,10 +170,8 @@ fn get_dead_marker() -> Location {
     Location(597, 623, vec![PixelColor(0x313131)])
 }
 
-fn get_rune_marker() -> Location {
-    Location(650, 484, vec![PixelColor(0x1D160C)])
-}
-
+//Mouse at: screen[3219, 515] window[651, 484]    Color: #1F1408
+//ouse at: screen[3217, 411] window[649, 380]    Color: #05709A
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let mut hm: HashMap<Location, LootQuality> = HashMap::new();
     hm.insert(
