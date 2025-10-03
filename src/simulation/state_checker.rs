@@ -4,6 +4,9 @@ use crate::win_util::{PixelColor, focus_window, get_pixel_color_local};
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
+const DEBUG_RUNE_COLOR: bool = false;
+const DEBUG_LOCATION_COLOR: bool = false;
+
 pub trait StateChecker {
     fn get_state(&self) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
@@ -36,42 +39,75 @@ impl StateChecker for WindowObj {
         println!("Getting state");
         let mut state = CharState::Unknown;
 
-        if let Some(s) = check_location(self.hwnd, get_loot_marker(), CharState::Looting, true) {
+        if let Some(s) = check_location(
+            self.hwnd,
+            get_loot_marker(),
+            CharState::Looting,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_town_marker(), CharState::InTown, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_town_marker(),
+            CharState::InTown,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) = check_location(self.hwnd, get_dead_marker(), CharState::Dead, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_dead_marker(),
+            CharState::Dead,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_shrine1_marker(), CharState::AtShrine, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_shrine1_marker(),
+            CharState::AtShrine,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_shrine2_marker(), CharState::AtShrine, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_shrine2_marker(),
+            CharState::AtShrine,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_shrine3_marker(), CharState::AtShrine, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_shrine3_marker(),
+            CharState::AtShrine,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_shrine4_marker(), CharState::AtShrine, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_shrine4_marker(),
+            CharState::AtShrine,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_shrine5_marker(), CharState::AtShrine, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_shrine5_marker(),
+            CharState::AtShrine,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_dungeon_marker(), CharState::InDungeon, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_dungeon_marker(),
+            CharState::InDungeon,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
-        } else if let Some(s) =
-            check_location(self.hwnd, get_fight_marker(), CharState::Fighting, true)
-        {
+        } else if let Some(s) = check_location(
+            self.hwnd,
+            get_fight_marker(),
+            CharState::Fighting,
+            DEBUG_LOCATION_COLOR,
+        ) {
             state = s;
         }
 
@@ -83,7 +119,7 @@ impl StateChecker for WindowObj {
         println!("Getting loot quality");
         let mut quality = LootQuality::Unknown;
         for (loc, q) in get_loot_quality_markers() {
-            if let Some(q) = check_location(self.hwnd, loc, q, true) {
+            if let Some(q) = check_location(self.hwnd, loc, q, DEBUG_LOCATION_COLOR) {
                 quality = q;
                 break;
             }
@@ -99,9 +135,9 @@ impl StateChecker for WindowObj {
             .map(|offset| Location(650 + offset, 488, vec![PixelColor(0x0091CB)]))
             .collect();
         _ = focus_window(self.hwnd).as_bool();
-        let result = locations
-            .iter()
-            .any(|loc| check_location_no_focus(self.hwnd, loc.clone(), true, false).is_some());
+        let result = locations.iter().any(|loc| {
+            check_location_no_focus(self.hwnd, loc.clone(), true, DEBUG_RUNE_COLOR).is_some()
+        });
         println!("Is rune: {:?}", result);
         result
     }
