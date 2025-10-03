@@ -2,6 +2,7 @@ mod class_config;
 mod hex_hwnd;
 
 use crate::config::class_config::ClassConfig;
+use crate::simulation::loot::LootQuality;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -61,7 +62,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            skill_haste_percent: 10.0,
+            skill_haste_percent: 13.0,
             frenzy_duration: 20.0,
             bulwark_duration: 10.0,
             sync_interval_ms: 500,
@@ -84,6 +85,15 @@ impl Default for Config {
                             "Phase Blade".to_string(),
                             "Clarity".to_string(),
                         ]),
+                        vec![
+                            LootQuality::Normal,
+                            LootQuality::Socketed,
+                            LootQuality::Magic,
+                            LootQuality::Rare,
+                            LootQuality::Epic,
+                            LootQuality::Set,
+                            LootQuality::Legendary,
+                        ],
                     ),
                 },
                 WindowConfig {
@@ -95,7 +105,19 @@ impl Default for Config {
                     position_y: 0,
                     active: true,
                     master: false,
-                    class_config: ClassConfig::new(Class::Warlock, None),
+                    class_config: ClassConfig::new(
+                        Class::Warlock,
+                        None,
+                        vec![
+                            LootQuality::Normal,
+                            LootQuality::Socketed,
+                            LootQuality::Magic,
+                            LootQuality::Rare,
+                            LootQuality::Epic,
+                            LootQuality::Set,
+                            LootQuality::Legendary,
+                        ],
+                    ),
                 },
                 WindowConfig {
                     title: Some("Nevergrind".into()),
@@ -106,7 +128,19 @@ impl Default for Config {
                     position_y: 0,
                     active: true,
                     master: true,
-                    class_config: ClassConfig::new(Class::Warrior, None),
+                    class_config: ClassConfig::new(
+                        Class::Warrior,
+                        None,
+                        vec![
+                            LootQuality::Normal,
+                            LootQuality::Socketed,
+                            LootQuality::Magic,
+                            LootQuality::Rare,
+                            LootQuality::Epic,
+                            LootQuality::Set,
+                            LootQuality::Legendary,
+                        ],
+                    ),
                 },
             ],
         }

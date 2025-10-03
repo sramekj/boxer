@@ -226,11 +226,19 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
         LootQuality::Rare,
     );
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x00C400), PixelColor(0x026B2A)]),
+        Location(
+            519,
+            506,
+            vec![
+                PixelColor(0x00C400),
+                PixelColor(0x026B2A),
+                PixelColor(0x007E27),
+            ],
+        ),
         LootQuality::Set,
     );
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x9F4396)]),
+        Location(519, 506, vec![PixelColor(0x9F4396), PixelColor(0xF868AD)]),
         LootQuality::Epic,
     );
     // hm.insert(

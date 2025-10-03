@@ -1,7 +1,7 @@
 pub mod char_state;
 mod interactor;
 pub mod keys;
-mod loot;
+pub mod loot;
 pub mod rotation;
 pub(crate) mod shared_state;
 mod skill;
