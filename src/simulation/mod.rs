@@ -192,7 +192,7 @@ impl SimulationState {
         }
         //we always loot runes
         if quality == LootQuality::Normal && self.state_checker.is_rune() {
-            return self.interactor.interact();
+            return self.interactor.loot();
         }
         //now loot according to the loot filter
         if self
@@ -201,7 +201,7 @@ impl SimulationState {
             .loot_filter
             .contains(&quality)
         {
-            self.interactor.interact()
+            self.interactor.loot()
         } else {
             self.interactor.discard()
         }

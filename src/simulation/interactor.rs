@@ -5,6 +5,7 @@ use crate::win_util::{focus_window, send_key_vk};
 
 pub trait Interactor {
     fn cast_skill(&self, skill: &Skill) -> bool;
+    fn loot(&self) -> bool;
     fn interact(&self) -> bool;
     fn discard(&self) -> bool;
     fn target_player(&self, player_index: usize) -> bool;
@@ -13,6 +14,11 @@ pub trait Interactor {
 impl Interactor for DebugObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
         println!("Casting '{}'", skill.name);
+        true
+    }
+
+    fn loot(&self) -> bool {
+        println!("Looting item");
         true
     }
 
@@ -36,6 +42,11 @@ impl Interactor for WindowObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
         println!("Casting '{}'", skill.name);
         focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok()
+    }
+
+    fn loot(&self) -> bool {
+        println!("Looting item");
+        focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
     }
 
     fn interact(&self) -> bool {
