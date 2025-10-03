@@ -50,6 +50,7 @@ pub struct SimulationState {
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
+    pub num_active_characters: usize,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub skill_tracker: SkillTracker,
@@ -62,6 +63,7 @@ impl SimulationState {
     pub fn new(
         sync_interval_ms: u64,
         cast_leeway_ms: u64,
+        num_active_characters: usize,
         window_config: WindowConfig,
         rotation: Rotation,
         skill_caster: Box<dyn Interactor + Send + Sync>,
@@ -73,6 +75,7 @@ impl SimulationState {
             is_enabled: Arc::new(AtomicBool::new(false)),
             sync_interval_ms,
             cast_leeway_ms,
+            num_active_characters,
             window_config,
             rotation,
             skill_tracker: SkillTracker::new(shared_state.clone()),
@@ -170,13 +173,16 @@ impl SimulationState {
         let prev = self.is_enabled.fetch_xor(true, Ordering::SeqCst);
         println!(
             "Enabled: {} for class: {:?}",
-            !prev, self.window_config.class
+            !prev, self.window_config.class_config.class
         );
     }
 
     pub fn stop(&self) {
         self.is_running.store(false, Ordering::SeqCst);
-        println!("Stopping for class: {:?}", self.window_config.class);
+        println!(
+            "Stopping for class: {:?}",
+            self.window_config.class_config.class
+        );
     }
 }
 
@@ -197,6 +203,7 @@ mod tests {
         let simulation = SimulationState::new(
             cfg.sync_interval_ms,
             0,
+            1,
             cfg.windows.first().unwrap().clone(),
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),

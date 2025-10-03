@@ -1,5 +1,7 @@
+mod class_config;
 mod hex_hwnd;
 
+use crate::config::class_config::ClassConfig;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -39,7 +41,7 @@ pub struct WindowConfig {
     pub position_y: i32,
     pub active: bool,
     pub master: bool,
-    pub class: Class,
+    pub class_config: ClassConfig,
 }
 
 unsafe impl Send for WindowConfig {}
@@ -75,7 +77,14 @@ impl Default for Config {
                     position_y: 0,
                     active: true,
                     master: false,
-                    class: Class::Enchanter,
+                    class_config: ClassConfig::new(
+                        Class::Enchanter,
+                        Some(vec![
+                            "Augmentation".to_string(),
+                            "Phase Blade".to_string(),
+                            "Clarity".to_string(),
+                        ]),
+                    ),
                 },
                 WindowConfig {
                     title: Some("[#] [Steam2] Nevergrind [#]".into()),
@@ -86,7 +95,7 @@ impl Default for Config {
                     position_y: 0,
                     active: true,
                     master: false,
-                    class: Class::Warlock,
+                    class_config: ClassConfig::new(Class::Warlock, None),
                 },
                 WindowConfig {
                     title: Some("Nevergrind".into()),
@@ -97,7 +106,7 @@ impl Default for Config {
                     position_y: 0,
                     active: true,
                     master: true,
-                    class: Class::Warrior,
+                    class_config: ClassConfig::new(Class::Warrior, None),
                 },
             ],
         }

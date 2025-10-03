@@ -86,6 +86,7 @@ fn main() -> windows::core::Result<()> {
         .filter(|x| x.active)
         .cloned()
         .collect::<Vec<_>>();
+    let num_windows = active_windows.len();
     for active_window in active_windows {
         let mut hwnd_opt = match &active_window.title {
             Some(title) => find_window_by_title(title),
@@ -105,12 +106,13 @@ fn main() -> windows::core::Result<()> {
             .expect("Failed to set window position");
         }
 
-        let rotation = Rotation::get_rotation(active_window.class, &cfg);
+        let rotation = Rotation::get_rotation(active_window.class_config.class, &cfg);
 
         let simulation = if args.debug_sim {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
                 cfg.cast_leeway_ms,
+                num_windows,
                 active_window,
                 rotation,
                 Box::new(DebugObj::new(CharState::Fighting)),
@@ -121,6 +123,7 @@ fn main() -> windows::core::Result<()> {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
                 cfg.cast_leeway_ms,
+                num_windows,
                 active_window,
                 rotation,
                 Box::new(WindowObj::new(hwnd_opt)),
