@@ -154,6 +154,7 @@ fn get_shrine1_marker() -> Location {
             PixelColor(0xF0F0F0),
             PixelColor(0xFFFFFF),
             PixelColor(0x666666),
+            PixelColor(0x7A7A7A),
             PixelColor(0x5C6263),
             PixelColor(0x6D7677),
         ],
