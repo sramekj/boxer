@@ -126,10 +126,8 @@ impl SimulationState {
                     // do nothing
                 }
                 _ => {
-                    if state == CharState::AtShrine {
-                        if self.interactor.interact() {
-                            println!("Interacted with a shrine")
-                        }
+                    if state == CharState::AtShrine && self.interactor.interact() {
+                        println!("Interacted with a shrine");
                     }
                     if state == CharState::Looting {
                         // TODO: implement looting
@@ -178,7 +176,7 @@ impl SimulationState {
     }
 
     fn cast(&self, skill: &Skill) {
-        let cast_result = self.interactor.cast_skill(&skill);
+        let cast_result = self.interactor.cast_skill(skill);
         let cast_time = skill.cast_time(self.shared_state.clone());
         let ms = if cast_time > 0.0 {
             //let's wait for a cast time duration

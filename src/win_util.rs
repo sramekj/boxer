@@ -191,7 +191,7 @@ pub fn get_pixel_color_local(
     }
 }
 
-pub fn debug_mouse_color(hwnd: HWND) {
+pub fn debug_mouse_color(_hwnd: HWND) {
     unsafe {
         let mut pt = POINT::default();
         if GetCursorPos(&mut pt).is_err() {
@@ -206,7 +206,7 @@ pub fn debug_mouse_color(hwnd: HWND) {
             }
         }
 
-        // if !debug_rectangle(Some(hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
+        // if !debug_rectangle(Some(_hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
         //     eprintln!("Failed to draw a rectangle");
         // }
     }
@@ -230,6 +230,7 @@ pub fn debug_mouse(hwnd: HWND) {
     }
 }
 
+#[allow(dead_code)]
 pub fn debug_rectangle(
     hwnd: Option<HWND>,
     left: i32,

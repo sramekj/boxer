@@ -117,7 +117,7 @@ fn check_location_no_focus<T>(
         if debug_color {
             println!("Found color: {}", color);
         }
-        if location.2.iter().any(|c| *c == color) {
+        if location.2.contains(&color) {
             return Some(result_state);
         }
     }
@@ -189,8 +189,6 @@ fn get_dead_marker() -> Location {
     Location(597, 623, vec![PixelColor(0x313131)])
 }
 
-//Mouse at: screen[3219, 515] window[651, 484]    Color: #1F1408
-//ouse at: screen[3217, 411] window[649, 380]    Color: #05709A
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let mut hm: HashMap<Location, LootQuality> = HashMap::new();
     hm.insert(

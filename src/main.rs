@@ -32,7 +32,7 @@ fn main() -> windows::core::Result<()> {
         return Ok(());
     }
 
-    if !make_dpi_aware().is_ok() {
+    if make_dpi_aware().is_err() {
         eprintln!("DPI aware failed");
     }
 
