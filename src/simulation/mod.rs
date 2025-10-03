@@ -12,6 +12,7 @@ pub mod state_checker;
 use crate::config::WindowConfig;
 pub(crate) use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
+use crate::simulation::loot::LootQuality;
 pub(crate) use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
@@ -100,7 +101,10 @@ impl SimulationState {
             }
             let state = self.state_checker.get_state();
             if state == CharState::Looting {
-                let _ = self.state_checker.get_loot_quality();
+                let quality = self.state_checker.get_loot_quality();
+                if quality == LootQuality::Normal {
+                    _ = self.state_checker.is_rune();
+                }
             }
             thread::sleep(Duration::from_millis(self.sync_interval_ms));
         }

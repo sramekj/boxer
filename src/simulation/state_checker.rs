@@ -7,6 +7,7 @@ use windows::Win32::Foundation::HWND;
 pub trait StateChecker {
     fn get_state(&self) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
+    fn is_rune(&self) -> bool;
 }
 
 impl StateChecker for DebugObj {
@@ -22,6 +23,11 @@ impl StateChecker for DebugObj {
         let quality = LootQuality::Epic;
         println!("Loot quality: {:?}", quality);
         quality
+    }
+
+    fn is_rune(&self) -> bool {
+        println!("Is rune: false");
+        false
     }
 }
 
@@ -75,6 +81,12 @@ impl StateChecker for WindowObj {
         println!("Loot quality: {:?}", quality);
         quality
     }
+
+    fn is_rune(&self) -> bool {
+        let result = check_location(self.hwnd, get_rune_marker(), true).is_some();
+        println!("Is rune: {:?}", result);
+        result
+    }
 }
 
 fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) -> Option<T> {
@@ -93,7 +105,7 @@ fn check_location<T>(hwnd: Option<HWND>, location: Location, result_state: T) ->
 struct Location(i32, i32, Vec<PixelColor>);
 
 fn get_town_marker() -> Location {
-    Location(1127, 11, vec![PixelColor(0x00D5FE)])
+    Location(1127, 11, vec![PixelColor(0x00D5FE), PixelColor(0x03CEF6)])
 }
 
 fn get_dungeon_marker() -> Location {
@@ -142,15 +154,55 @@ fn get_dead_marker() -> Location {
     Location(597, 623, vec![PixelColor(0x313131)])
 }
 
+fn get_rune_marker() -> Location {
+    Location(650, 484, vec![PixelColor(0x1D160C)])
+}
+
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let mut hm: HashMap<Location, LootQuality> = HashMap::new();
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x959595)]),
+        Location(519, 506, vec![PixelColor(0x4D4D74), PixelColor(0x777777)]),
         LootQuality::Normal,
     );
     hm.insert(
-        Location(519, 506, vec![PixelColor(0xFFC034)]),
+        Location(
+            519,
+            506,
+            vec![
+                PixelColor(0x111138),
+                PixelColor(0x1A1A1A),
+                PixelColor(0x100F38),
+            ],
+        ),
+        LootQuality::Socketed,
+    );
+    hm.insert(
+        Location(
+            519,
+            506,
+            vec![
+                PixelColor(0xFF9A2A),
+                PixelColor(0xA46342),
+                PixelColor(0x8C5440),
+            ],
+        ),
         LootQuality::Magic,
     );
+    hm.insert(
+        Location(519, 506, vec![PixelColor(0x00FFFF), PixelColor(0x00A4CB)]),
+        LootQuality::Rare,
+    );
+    hm.insert(
+        Location(519, 506, vec![PixelColor(0x00C400), PixelColor(0x026B2A)]),
+        LootQuality::Set,
+    );
+    hm.insert(
+        Location(519, 506, vec![PixelColor(0x9F4396)]),
+        LootQuality::Epic,
+    );
+    // hm.insert(
+    //     Location(519, 506, vec![PixelColor(0xFF9A2A)]),
+    //     LootQuality::Legendary,
+    // );
     hm
 }
