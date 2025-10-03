@@ -36,6 +36,9 @@ impl StateChecker for WindowObj {
         } else if let Some(s) = check_location(self.hwnd, get_shrine4_marker(), CharState::AtShrine)
         {
             state = s;
+        } else if let Some(s) = check_location(self.hwnd, get_shrine5_marker(), CharState::AtShrine)
+        {
+            state = s;
         } else if let Some(s) =
             check_location(self.hwnd, get_dungeon_marker(), CharState::InDungeon)
         {
@@ -76,7 +79,15 @@ fn get_dungeon_marker() -> Location {
 }
 
 fn get_shrine1_marker() -> Location {
-    Location(635, 246, vec![PixelColor(0xF0F0F0), PixelColor(0xFFFFFF)])
+    Location(
+        635,
+        246,
+        vec![
+            PixelColor(0xF0F0F0),
+            PixelColor(0xFFFFFF),
+            PixelColor(0x666666),
+        ],
+    )
 }
 
 fn get_shrine2_marker() -> Location {
@@ -89,6 +100,10 @@ fn get_shrine3_marker() -> Location {
 
 fn get_shrine4_marker() -> Location {
     Location(626, 452, vec![PixelColor(0xE2D2C3), PixelColor(0xFFFCE7)])
+}
+
+fn get_shrine5_marker() -> Location {
+    Location(591, 471, vec![PixelColor(0x091E4F), PixelColor(0x042268)])
 }
 
 fn get_loot_marker() -> Location {
