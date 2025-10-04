@@ -147,7 +147,7 @@ impl SimulationState {
                         loop {
                             //keep looting until the state changes, or we failed to loot (needs manual intervention)
                             let looted = self.loot_cycle();
-                            thread::sleep(Duration::from_millis(50));
+                            thread::sleep(Duration::from_millis(100));
                             let new_state =
                                 self.state_checker.get_state(self.num_active_characters);
                             if !looted || new_state != CharState::Looting {
@@ -174,6 +174,7 @@ impl SimulationState {
                                     );
                                     for player_index in 0..self.num_active_characters {
                                         self.interactor.target_player(player_index);
+                                        thread::sleep(Duration::from_millis(100));
                                         self.cast(&skill);
                                     }
                                     // re-target himself
@@ -187,8 +188,6 @@ impl SimulationState {
                                 skip_wait = true;
                             }
                         });
-                    } else {
-                        self.skill_tracker.reset();
                     }
                 }
             }
