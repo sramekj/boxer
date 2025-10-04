@@ -1,6 +1,7 @@
 use crate::simulation::loot::LootQuality;
 use crate::simulation::{CharState, DebugObj, WindowObj};
 use crate::win_util::{PixelColor, focus_window, get_pixel_color_local};
+use colored::Colorize;
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
@@ -15,14 +16,12 @@ pub trait StateChecker {
 
 impl StateChecker for DebugObj {
     fn get_state(&self, _: usize) -> CharState {
-        println!("Getting state");
         let state = self.test_state;
-        println!("New state:  {:?}", state);
+        println!("State: 1{:?}", state);
         state
     }
 
     fn get_loot_quality(&self) -> LootQuality {
-        println!("Getting loot quality");
         let quality = LootQuality::Epic;
         println!("Loot quality: {:?}", quality);
         quality
@@ -36,7 +35,6 @@ impl StateChecker for DebugObj {
 
 impl StateChecker for WindowObj {
     fn get_state(&self, number_of_players: usize) -> CharState {
-        println!("Getting state");
         let mut state = CharState::Unknown;
 
         if let Some(s) = check_location(
@@ -111,12 +109,11 @@ impl StateChecker for WindowObj {
             state = s;
         }
 
-        println!("New state: {:?}", state);
+        println!("State: {}", format!("{:?}", state).cyan());
         state
     }
 
     fn get_loot_quality(&self) -> LootQuality {
-        println!("Getting loot quality");
         let mut quality = LootQuality::Unknown;
         for (loc, q) in get_loot_quality_markers() {
             if let Some(q) = check_location(self.hwnd, loc, q, DEBUG_LOCATION_COLOR) {
@@ -280,6 +277,8 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
         ),
         LootQuality::Set,
     );
+
+    //[489, 507]    Color: #FF82D8
     hm.insert(
         Location(519, 506, vec![PixelColor(0x9F4396), PixelColor(0xF868AD)]),
         LootQuality::Epic,

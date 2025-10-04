@@ -13,12 +13,12 @@ pub trait Interactor {
 
 impl Interactor for DebugObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
-        println!("Casting '{}'", skill.name);
+        print!("Casting '{}'", skill.name);
         true
     }
 
     fn loot(&self) -> bool {
-        println!("Looting item");
+        println!("Looting an item");
         true
     }
 
@@ -28,7 +28,7 @@ impl Interactor for DebugObj {
     }
 
     fn discard(&self) -> bool {
-        println!("Discarding a looted item");
+        println!("Discarding an item");
         true
     }
 
@@ -40,12 +40,12 @@ impl Interactor for DebugObj {
 
 impl Interactor for WindowObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
-        println!("Casting '{}'", skill.name);
+        print!("Casting '{}'", skill.name);
         focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok()
     }
 
     fn loot(&self) -> bool {
-        println!("Looting item");
+        println!("Looting an item");
         focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
     }
 
@@ -55,7 +55,7 @@ impl Interactor for WindowObj {
     }
 
     fn discard(&self) -> bool {
-        println!("Discarding a looted item");
+        println!("Discarding an item");
         focus_window(self.hwnd).as_bool() && send_key_vk(DISCARD).is_ok()
     }
 

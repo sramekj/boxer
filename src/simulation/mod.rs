@@ -118,19 +118,25 @@ impl SimulationState {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
         let is_enabled = self.is_enabled.clone();
+        let mut prev_state: CharState = CharState::InTown;
         while is_running.load(Ordering::SeqCst) {
             if !is_enabled.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
                 continue;
             }
             let mut skip_wait = false;
+
             let state = self.state_checker.get_state(self.num_active_characters);
+
+            // did we recently die or left town?
+            let need_reset_states = [CharState::InTown, CharState::Dead];
+            if need_reset_states.contains(&prev_state) && !need_reset_states.contains(&state) {
+                self.skill_tracker.reset();
+            }
+
             match state {
-                CharState::Unknown => {
+                CharState::Unknown | CharState::InTown => {
                     // do nothing
-                }
-                CharState::InTown => {
-                    self.skill_tracker.reset();
                 }
                 _ => {
                     if state == CharState::AtShrine && self.interactor.interact() {
@@ -186,11 +192,11 @@ impl SimulationState {
                     }
                 }
             }
+            prev_state = state;
             if !skip_wait {
                 println!("Sync sleep for {} ms", self.sync_interval_ms);
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
-            println!("Simulation cycle finished")
         }
     }
 
@@ -218,19 +224,16 @@ impl SimulationState {
     }
 
     fn cast(&self, skill: &Skill) {
-        let cast_result = self.interactor.cast_skill(skill);
+        if !self.interactor.cast_skill(skill) {
+            eprintln!("Couldn't cast skill {}", skill.name);
+        }
         let cast_time = skill.cast_time(
             self.shared_state.clone(),
             self.window_config.class_config.class,
         );
         let ms = if cast_time > 0.0 {
             //let's wait for a cast time duration
-            let ms = (cast_time * 1000.0) as u64;
-            println!(
-                "Casting for {} seconds with cast result: {}",
-                cast_time, cast_result
-            );
-            ms
+            (cast_time * 1000.0) as u64
         } else if self
             .window_config
             .class_config
@@ -239,23 +242,15 @@ impl SimulationState {
             .is_some_and(|skills| skills.contains(&skill.name))
         {
             //no gcd skill
-            println!("Casting non-GCD instant");
             0
         } else {
-            let ms = (skill.get_gcd(
+            (skill.get_gcd(
                 self.shared_state.clone(),
                 self.window_config.class_config.class,
-            ) * 1000.0) as u64;
-            println!(
-                "Casting instant and waiting for GCD for {} seconds",
-                skill.get_gcd(
-                    self.shared_state.clone(),
-                    self.window_config.class_config.class
-                )
-            );
-            ms
+            ) * 1000.0) as u64
         };
         thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
+        println!(" and it took {}s", ms as f32 / 1000.0);
     }
 
     pub fn enable_toggle(&self) {
@@ -268,10 +263,7 @@ impl SimulationState {
 
     pub fn stop(&self) {
         self.is_running.store(false, Ordering::SeqCst);
-        println!(
-            "Stopping for class: {:?}",
-            self.window_config.class_config.class
-        );
+        println!("Stopping {:?} ", self.window_config.class_config.class);
     }
 }
 
