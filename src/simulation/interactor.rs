@@ -42,7 +42,7 @@ impl Interactor for DebugObj {
     }
 }
 
-const WAIT_TO_REGISTER_MS: u64 = 150;
+const WAIT_TO_REGISTER_MS: u64 = 200;
 impl Interactor for WindowObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
         print!("Casting ");
