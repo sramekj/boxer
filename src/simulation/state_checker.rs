@@ -17,7 +17,7 @@ pub trait StateChecker {
 impl StateChecker for DebugObj {
     fn get_state(&self, _: usize) -> CharState {
         let state = self.test_state;
-        println!("State: 1{:?}", state);
+        println!("State: {:?}", state);
         state
     }
 

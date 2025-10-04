@@ -148,6 +148,10 @@ impl PixelColor {
         ((self.0 & 0x00FF0000) >> 16) as u8
     }
 
+    fn rgb(&self) -> (u8, u8, u8) {
+        (self.r(), self.g(), self.b())
+    }
+
     pub fn println(&self) {
         println!(
             "{}",
@@ -160,6 +164,16 @@ impl PixelColor {
             "{}",
             format!("{}", self).truecolor(self.r(), self.g(), self.b())
         );
+    }
+
+    pub fn is_color_similar_to(&self, other: PixelColor, tolerance: u8) -> bool {
+        let (r1, g1, b1) = self.rgb();
+        let (r2, g2, b2) = other.rgb();
+        let dr = r1 as i16 - r2 as i16;
+        let dg = g1 as i16 - g2 as i16;
+        let db = b1 as i16 - b2 as i16;
+        let distance_squared = dr * dr + dg * dg + db * db;
+        distance_squared <= (tolerance as i16).pow(2)
     }
 }
 

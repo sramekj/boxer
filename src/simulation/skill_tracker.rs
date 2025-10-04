@@ -146,18 +146,24 @@ impl SkillTracker {
                         let mut state = state.lock().unwrap();
                         state.set_frenzy(false);
                     }
-                    println!("Buff {} expired", skill.name);
+                    println!("{}", format!("Buff {} expired", skill.name).yellow());
                 } else {
-                    println!("Buff {} is still applied", skill.name);
+                    println!(
+                        "{}",
+                        format!("Buff {} is still applied", skill.name).bright_green()
+                    );
                 }
                 result
             }
             SkillType::Debuff => {
                 let result = !self.has_debuff_applied(skill);
                 if result {
-                    println!("Debuff {} expired", skill.name);
+                    println!("{}", format!("Debuff {} expired", skill.name).yellow());
                 } else {
-                    println!("Debuff {} is still applied", skill.name);
+                    println!(
+                        "{}",
+                        format!("Debuff {} is still applied", skill.name).bright_green()
+                    );
                 }
                 result
             }
