@@ -8,13 +8,13 @@ const DEBUG_RUNE_COLOR: bool = false;
 const DEBUG_LOCATION_COLOR: bool = true;
 
 pub trait StateChecker {
-    fn get_state(&self) -> CharState;
+    fn get_state(&self, number_of_players: usize) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
     fn is_rune(&self) -> bool;
 }
 
 impl StateChecker for DebugObj {
-    fn get_state(&self) -> CharState {
+    fn get_state(&self, _: usize) -> CharState {
         println!("Getting state");
         let state = self.test_state;
         println!("New state:  {:?}", state);
@@ -35,7 +35,7 @@ impl StateChecker for DebugObj {
 }
 
 impl StateChecker for WindowObj {
-    fn get_state(&self) -> CharState {
+    fn get_state(&self, number_of_players: usize) -> CharState {
         println!("Getting state");
         let mut state = CharState::Unknown;
 
@@ -55,7 +55,7 @@ impl StateChecker for WindowObj {
             state = s;
         } else if let Some(s) = check_location(
             self.hwnd,
-            get_dead_marker(),
+            get_dead_marker(number_of_players),
             CharState::Dead,
             DEBUG_LOCATION_COLOR,
         ) {
@@ -230,8 +230,16 @@ fn get_fight_marker() -> Location {
     Location(1231, 598, vec![PixelColor(0x4D2209)])
 }
 
-fn get_dead_marker() -> Location {
-    Location(597, 623, vec![PixelColor(0x313131)])
+fn get_dead_marker(number_of_players: usize) -> Location {
+    let x = match number_of_players {
+        1 => 596,
+        2 => 549,
+        3 => 502,
+        4 => 455,
+        5 => 408,
+        _ => 597,
+    };
+    Location(x, 623, vec![PixelColor(0x313131)])
 }
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {

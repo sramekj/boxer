@@ -99,7 +99,7 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
                 continue;
             }
-            let state = self.state_checker.get_state();
+            let state = self.state_checker.get_state(self.num_active_characters);
             if state == CharState::Looting {
                 let quality = self.state_checker.get_loot_quality();
                 if quality == LootQuality::Normal {
@@ -120,7 +120,7 @@ impl SimulationState {
                 continue;
             }
             let mut skip_wait = false;
-            let state = self.state_checker.get_state();
+            let state = self.state_checker.get_state(self.num_active_characters);
             match state {
                 CharState::Unknown => {
                     // do nothing
@@ -138,7 +138,8 @@ impl SimulationState {
                             //keep looting until the state changes, or we failed to loot (needs manual intervention)
                             let looted = self.loot_cycle();
                             thread::sleep(Duration::from_millis(50));
-                            let new_state = self.state_checker.get_state();
+                            let new_state =
+                                self.state_checker.get_state(self.num_active_characters);
                             if !looted || new_state != CharState::Looting {
                                 println!("Looting ended");
                                 break;
@@ -226,31 +227,29 @@ impl SimulationState {
                 cast_time, cast_result
             );
             ms
+        } else if self
+            .window_config
+            .class_config
+            .no_gcd_skills
+            .clone()
+            .is_some_and(|skills| skills.contains(&skill.name))
+        {
+            //no gcd skill
+            println!("Casting non-GCD instant");
+            0
         } else {
-            if self
-                .window_config
-                .class_config
-                .no_gcd_skills
-                .clone()
-                .is_some_and(|skills| skills.contains(&skill.name))
-            {
-                //no gcd skill
-                println!("Casting non-GCD instant");
-                0
-            } else {
-                let ms = (skill.get_gcd(
+            let ms = (skill.get_gcd(
+                self.shared_state.clone(),
+                self.window_config.class_config.class,
+            ) * 1000.0) as u64;
+            println!(
+                "Casting instant and waiting for GCD for {} seconds",
+                skill.get_gcd(
                     self.shared_state.clone(),
-                    self.window_config.class_config.class,
-                ) * 1000.0) as u64;
-                println!(
-                    "Casting instant and waiting for GCD for {} seconds",
-                    skill.get_gcd(
-                        self.shared_state.clone(),
-                        self.window_config.class_config.class
-                    )
-                );
-                ms
-            }
+                    self.window_config.class_config.class
+                )
+            );
+            ms
         };
         thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
     }
