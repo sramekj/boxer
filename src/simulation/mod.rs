@@ -157,7 +157,11 @@ impl SimulationState {
                         }
                         skip_wait = true;
                     }
-                    if state != CharState::Dead {
+                    if [CharState::Fighting, CharState::InDungeon].contains(&state) {
+                        if prev_state != CharState::Fighting {
+                            //wait if we just started fighting... otherwise the first cast will not go off
+                            thread::sleep(Duration::from_millis(100));
+                        }
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
                             //make sure we did not die inside a long rotation
