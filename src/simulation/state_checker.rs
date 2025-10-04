@@ -302,6 +302,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0x00FFFF),
                 PixelColor(0x00A4CB),
                 PixelColor(0x079696),
+                PixelColor(0x07FDFC),
             ],
         ),
         LootQuality::Rare,
