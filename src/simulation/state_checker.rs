@@ -246,7 +246,7 @@ fn get_dead_marker(number_of_players: usize) -> Location {
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let mut hm: HashMap<Location, LootQuality> = HashMap::new();
-    let x = 504;
+    let x = 485;
     let y = 506;
     hm.insert(
         Location(
@@ -282,12 +282,21 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0x8C5440),
                 PixelColor(0xB97728),
                 PixelColor(0xCA7A22),
+                PixelColor(0xF59428),
             ],
         ),
         LootQuality::Magic,
     );
     hm.insert(
-        Location(x, y, vec![PixelColor(0x00FFFF), PixelColor(0x00A4CB)]),
+        Location(
+            x,
+            y,
+            vec![
+                PixelColor(0x00FFFF),
+                PixelColor(0x00A4CB),
+                PixelColor(0x079696),
+            ],
+        ),
         LootQuality::Rare,
     );
     hm.insert(
