@@ -214,7 +214,10 @@ impl SimulationState {
 
     fn cast(&self, skill: &Skill) {
         let cast_result = self.interactor.cast_skill(skill);
-        let cast_time = skill.cast_time(self.shared_state.clone());
+        let cast_time = skill.cast_time(
+            self.shared_state.clone(),
+            self.window_config.class_config.class,
+        );
         let ms = if cast_time > 0.0 {
             //let's wait for a cast time duration
             let ms = (cast_time * 1000.0) as u64;
@@ -235,10 +238,16 @@ impl SimulationState {
                 println!("Casting non-GCD instant");
                 0
             } else {
-                let ms = (skill.get_gcd() * 1000.0) as u64;
+                let ms = (skill.get_gcd(
+                    self.shared_state.clone(),
+                    self.window_config.class_config.class,
+                ) * 1000.0) as u64;
                 println!(
                     "Casting instant and waiting for GCD for {} seconds",
-                    skill.get_gcd()
+                    skill.get_gcd(
+                        self.shared_state.clone(),
+                        self.window_config.class_config.class
+                    )
                 );
                 ms
             }
@@ -285,7 +294,10 @@ mod tests {
             rotation,
             Box::new(DebugObj::new(CharState::Fighting)),
             Box::new(DebugObj::new(CharState::Fighting)),
-            Arc::new(Mutex::new(SharedState::new(cfg.skill_haste_percent))),
+            Arc::new(Mutex::new(SharedState::new(
+                cfg.skill_haste_percent,
+                cfg.frenzy_haste_percent,
+            ))),
         );
 
         simulation.enable_toggle();

@@ -78,7 +78,10 @@ fn main() -> windows::core::Result<()> {
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
     let mut simulations: Vec<Arc<SimulationState>> = vec![];
-    let shared_state = Arc::new(Mutex::new(SharedState::new(cfg.skill_haste_percent)));
+    let shared_state = Arc::new(Mutex::new(SharedState::new(
+        cfg.skill_haste_percent,
+        cfg.frenzy_haste_percent,
+    )));
 
     let active_windows = cfg
         .windows

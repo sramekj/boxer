@@ -73,6 +73,10 @@ impl SkillTracker {
                     let state = self.shared_state.clone();
                     let mut state = state.lock().unwrap();
                     state.set_skill_haste(true);
+                } else if skill.name == "Frenzy" {
+                    let state = self.shared_state.clone();
+                    let mut state = state.lock().unwrap();
+                    state.set_frenzy(true);
                 }
                 buff_map.insert(skill.name.clone(), now);
             }
@@ -116,6 +120,10 @@ impl SkillTracker {
                         let state = self.shared_state.clone();
                         let mut state = state.lock().unwrap();
                         state.set_skill_haste(false);
+                    } else if skill.name == "Frenzy" {
+                        let state = self.shared_state.clone();
+                        let mut state = state.lock().unwrap();
+                        state.set_frenzy(false);
                     }
                     println!("Buff {} expired", skill.name);
                 } else {
