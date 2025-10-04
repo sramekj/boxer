@@ -169,11 +169,11 @@ impl PixelColor {
     pub fn is_similar_to(&self, other: PixelColor, tolerance: u8) -> bool {
         let (r1, g1, b1) = self.rgb();
         let (r2, g2, b2) = other.rgb();
-        let dr = r1 as i16 - r2 as i16;
-        let dg = g1 as i16 - g2 as i16;
-        let db = b1 as i16 - b2 as i16;
-        let distance_squared = dr * dr + dg * dg + db * db;
-        distance_squared <= (tolerance as i16).pow(2)
+        let dr = r1.abs_diff(r2) as u32;
+        let dg = g1.abs_diff(g2) as u32;
+        let db = b1.abs_diff(b2) as u32;
+        let distance_squared = ((dr * dr + dg * dg + db * db) as f32).sqrt();
+        distance_squared <= (tolerance as i32).pow(2) as f32
     }
 }
 

@@ -7,7 +7,7 @@ use windows::Win32::Foundation::HWND;
 
 const DEBUG_RUNE_COLOR: bool = false;
 const DEBUG_LOCATION_COLOR: bool = false;
-const COLOR_DISTANCE_TOLERANCE: u8 = 10;
+const COLOR_DISTANCE_TOLERANCE: u8 = 5;
 
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
@@ -299,6 +299,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0x026B2A),
                 PixelColor(0x007E27),
                 PixelColor(0x01CACA),
+                PixelColor(0x27C91C),
             ],
         ),
         LootQuality::Set,
