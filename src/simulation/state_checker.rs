@@ -175,16 +175,7 @@ fn check_location<T>(
 struct Location(i32, i32, Vec<PixelColor>);
 
 fn get_town_marker() -> Location {
-    Location(
-        1127,
-        11,
-        vec![
-            PixelColor(0x00D5FE),
-            PixelColor(0x03CEF6),
-            PixelColor(0x05C7EE),
-            PixelColor(0x0CB2D6),
-        ],
-    )
+    Location(1218, 12, vec![PixelColor(0x2B99CE)])
 }
 
 fn get_dungeon_marker() -> Location {
@@ -232,11 +223,11 @@ fn get_fight_marker() -> Location {
 
 fn get_dead_marker(number_of_players: usize) -> Location {
     let x = match number_of_players {
-        1 => 596,
-        2 => 549,
-        3 => 502,
-        4 => 455,
-        5 => 408,
+        1 => 597,
+        2 => 550,
+        3 => 503,
+        4 => 456,
+        5 => 409,
         _ => 597,
     };
     Location(x, 623, vec![PixelColor(0x313131)])
