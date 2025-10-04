@@ -2,6 +2,7 @@ use crate::simulation::keys::{DISCARD, Key, LOOT_INTERACT};
 use crate::simulation::skill::Skill;
 use crate::simulation::{DebugObj, WindowObj};
 use crate::win_util::{focus_window, send_key_vk};
+use colored::Colorize;
 
 pub trait Interactor {
     fn cast_skill(&self, skill: &Skill) -> bool;
@@ -40,22 +41,23 @@ impl Interactor for DebugObj {
 
 impl Interactor for WindowObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
-        print!("Casting '{}'", skill.name);
+        print!("Casting ");
+        print!("{}", format!("'{}'", skill.name).bright_magenta());
         focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok()
     }
 
     fn loot(&self) -> bool {
-        println!("Looting an item");
+        println!("{}", "Looting an item".green());
         focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
     }
 
     fn interact(&self) -> bool {
-        println!("Interacting");
+        println!("{}", "Interacting".green());
         focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
     }
 
     fn discard(&self) -> bool {
-        println!("Discarding an item");
+        println!("{}", "Discarding an item".red());
         focus_window(self.hwnd).as_bool() && send_key_vk(DISCARD).is_ok()
     }
 

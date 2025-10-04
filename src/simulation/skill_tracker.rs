@@ -2,6 +2,7 @@ use crate::simulation::CharState;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
+use colored::Colorize;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
@@ -50,8 +51,12 @@ impl SkillTracker {
             let diff = now - *last_cast;
             if diff.as_secs_f32() < skill.cooldown {
                 println!(
-                    "WARN: trying to cast {} which should still be on a cooldown",
-                    skill.name
+                    "{}",
+                    format!(
+                        "WARN: trying to cast {} which should still be on a cooldown",
+                        skill.name
+                    )
+                    .red()
                 );
                 return;
             }
@@ -107,7 +112,22 @@ impl SkillTracker {
         let result = !is_on_cooldown && can_cast;
         println!(
             "Checking ability: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
-            skill.name, is_on_cooldown, can_cast, result
+            skill.name,
+            if is_on_cooldown {
+                is_on_cooldown.to_string().red()
+            } else {
+                is_on_cooldown.to_string().green()
+            },
+            if can_cast {
+                can_cast.to_string().green()
+            } else {
+                can_cast.to_string().red()
+            },
+            if result {
+                result.to_string().green()
+            } else {
+                result.to_string().red()
+            }
         );
         result
     }

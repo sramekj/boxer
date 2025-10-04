@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
 const DEBUG_RUNE_COLOR: bool = false;
-const DEBUG_LOCATION_COLOR: bool = true;
+const DEBUG_LOCATION_COLOR: bool = false;
 
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
@@ -148,6 +148,7 @@ fn check_location_no_focus<T>(
 ) -> Option<T> {
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
         if debug_color {
+            print!("Color: ");
             color.println();
         }
         if location.2.contains(&color) {
@@ -258,6 +259,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0xFF9A2A),
                 PixelColor(0xA46342),
                 PixelColor(0x8C5440),
+                PixelColor(0xB97728),
             ],
         ),
         LootQuality::Magic,
