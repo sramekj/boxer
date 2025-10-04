@@ -166,7 +166,7 @@ impl PixelColor {
         );
     }
 
-    pub fn is_color_similar_to(&self, other: PixelColor, tolerance: u8) -> bool {
+    pub fn is_similar_to(&self, other: PixelColor, tolerance: u8) -> bool {
         let (r1, g1, b1) = self.rgb();
         let (r2, g2, b2) = other.rgb();
         let dr = r1 as i16 - r2 as i16;
@@ -362,5 +362,14 @@ mod tests {
         assert_eq!(COLOR.b(), 0xAA);
         assert_eq!(COLOR.g(), 0xBB);
         assert_eq!(COLOR.r(), 0xCC);
+        assert_eq!(COLOR.rgb(), (0xCC, 0xBB, 0xAA));
+    }
+
+    #[test]
+    fn test_color_distance() {
+        let c1 = PixelColor(0x00C400);
+        let c2 = PixelColor(0x00CB00);
+        let tolerance = 20;
+        assert!(c1.is_similar_to(c2, tolerance));
     }
 }
