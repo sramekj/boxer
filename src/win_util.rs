@@ -1,4 +1,5 @@
 use crate::simulation::keys::Key;
+use colored::*;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -136,6 +137,32 @@ impl Display for PixelColor {
     }
 }
 
+impl PixelColor {
+    fn r(&self) -> u8 {
+        (self.0 & 0x000000FF) as u8
+    }
+    fn g(&self) -> u8 {
+        ((self.0 & 0x0000FF00) >> 8) as u8
+    }
+    fn b(&self) -> u8 {
+        ((self.0 & 0x00FF0000) >> 16) as u8
+    }
+
+    pub fn println(&self) {
+        println!(
+            "{}",
+            format!("{}", self).truecolor(self.r(), self.g(), self.b())
+        );
+    }
+
+    pub fn print(&self) {
+        print!(
+            "{}",
+            format!("{}", self).truecolor(self.r(), self.g(), self.b())
+        );
+    }
+}
+
 const CLR_INVALID: u32 = 0xFFFFFFFF;
 
 pub fn get_pixel_color_screen(x: i32, y: i32) -> windows::core::Result<PixelColor> {
@@ -202,23 +229,20 @@ pub fn debug_mouse_color(_hwnd: HWND) {
         }
         match get_pixel_color_screen(pt.x, pt.y) {
             Ok(color) => {
-                println!("Color: {}", color);
+                print!("Color: ");
+                color.println()
             }
             Err(e) => {
                 eprintln!("Failed to get color at [{}, {}]: {:?}", pt.x, pt.y, e);
             }
         }
 
-        if DEBUG_RECTANGLE {
-            if !debug_rectangle(pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
-                eprintln!("Failed to draw a rectangle");
-            }
+        if DEBUG_RECTANGLE && debug_rectangle(pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_err() {
+            eprintln!("Failed to draw a rectangle");
         }
 
-        if DEBUG_DOT {
-            if !debug_dot(pt.x, pt.y).is_ok() {
-                eprintln!("Failed to draw a dot");
-            }
+        if DEBUG_DOT && debug_dot(pt.x, pt.y).is_err() {
+            eprintln!("Failed to draw a dot");
         }
     }
 }
@@ -321,5 +345,8 @@ mod tests {
     fn test_pixel_color_display() {
         const COLOR: PixelColor = PixelColor(11189196);
         assert_eq!(COLOR.to_string(), "#AABBCC");
+        assert_eq!(COLOR.b(), 0xAA);
+        assert_eq!(COLOR.g(), 0xBB);
+        assert_eq!(COLOR.r(), 0xCC);
     }
 }

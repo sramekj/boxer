@@ -151,7 +151,8 @@ fn check_location_no_focus<T>(
 ) -> Option<T> {
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
         if debug_color {
-            println!("Found color: {}", color);
+            print!("Found color: ");
+            color.println();
         }
         if location.2.contains(&color) {
             return Some(result_state);
