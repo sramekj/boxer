@@ -35,6 +35,7 @@ impl SkillTracker {
         last_cast_map.clear();
         buff_map.clear();
         debuff_map.clear();
+        println!("Skill tracker has been reset");
     }
 
     pub fn track_cast(&self, skill: &Skill) {

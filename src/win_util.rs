@@ -6,7 +6,7 @@ use std::ptr::null_mut;
 use windows::Win32::Foundation::{COLORREF, GetLastError, HWND, LPARAM, POINT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     ClientToScreen, CreatePen, DeleteObject, GetDC, GetPixel, GetStockObject, HGDIOBJ, NULL_BRUSH,
-    PS_SOLID, Rectangle, ReleaseDC, ScreenToClient, SelectObject,
+    PS_SOLID, Rectangle, ReleaseDC, ScreenToClient, SelectObject, SetPixel,
 };
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness};
@@ -191,6 +191,9 @@ pub fn get_pixel_color_local(
     }
 }
 
+const DEBUG_RECTANGLE: bool = false;
+const DEBUG_DOT: bool = false;
+
 pub fn debug_mouse_color(_hwnd: HWND) {
     unsafe {
         let mut pt = POINT::default();
@@ -206,9 +209,17 @@ pub fn debug_mouse_color(_hwnd: HWND) {
             }
         }
 
-        // if !debug_rectangle(Some(_hwnd), pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
-        //     eprintln!("Failed to draw a rectangle");
-        // }
+        if DEBUG_RECTANGLE {
+            if !debug_rectangle(pt.x - 5, pt.y - 5, pt.x + 5, pt.y + 5).is_ok() {
+                eprintln!("Failed to draw a rectangle");
+            }
+        }
+
+        if DEBUG_DOT {
+            if !debug_dot(pt.x, pt.y).is_ok() {
+                eprintln!("Failed to draw a dot");
+            }
+        }
     }
 }
 
@@ -230,22 +241,32 @@ pub fn debug_mouse(hwnd: HWND) {
     }
 }
 
-#[allow(dead_code)]
-pub fn debug_rectangle(
-    hwnd: Option<HWND>,
-    left: i32,
-    top: i32,
-    right: i32,
-    bottom: i32,
-) -> windows::core::Result<()> {
+pub fn debug_dot(x: i32, y: i32) -> windows::core::Result<()> {
     unsafe {
-        let hdc = GetDC(None);
+        let hwnd: Option<HWND> = None;
+        let hdc = GetDC(hwnd);
+        if hdc.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        SetPixel(hdc, x, y, COLORREF(0x0000FF));
+
+        ReleaseDC(hwnd, hdc);
+
+        Ok(())
+    }
+}
+
+pub fn debug_rectangle(left: i32, top: i32, right: i32, bottom: i32) -> windows::core::Result<()> {
+    unsafe {
+        let hwnd: Option<HWND> = None;
+        let hdc = GetDC(hwnd);
         if hdc.0.is_null() {
             return Err(Error::from(GetLastError()));
         }
 
         // Create a red pen (for border)
-        let hpen = CreatePen(PS_SOLID, 2, COLORREF(0xFF0000));
+        let hpen = CreatePen(PS_SOLID, 2, COLORREF(0x0000FF));
         let old_pen = SelectObject(hdc, HGDIOBJ(hpen.0));
 
         // Optional: Create a null brush (no fill)

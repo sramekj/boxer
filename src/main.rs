@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
+use windows::Win32::UI::Input::KeyboardAndMouse::VK_BACK;
 use windows::{
     Win32::Foundation::HWND,
     Win32::UI::Input::KeyboardAndMouse::{
@@ -40,7 +41,7 @@ fn main() -> windows::core::Result<()> {
 
     if args.debug_mouse {
         if cfg.windows.is_empty() {
-            println!("No windows in configuration found");
+            eprintln!("No windows in configuration found");
             return Ok(());
         }
         if let Some(first_window) = cfg.windows.first()
@@ -50,7 +51,7 @@ fn main() -> windows::core::Result<()> {
             println!("Window title: {} HWND: {:?}", window_title, hwnd_opt);
             match hwnd_opt {
                 None => {
-                    println!("Failed to get window handle for: {}", window_title);
+                    eprintln!("Failed to get window handle for: {}", window_title);
                     return Ok(());
                 }
                 Some(hwnd) => loop {
@@ -65,6 +66,7 @@ fn main() -> windows::core::Result<()> {
 
     const HOTKEY_DEL_ID: i32 = 1;
     const HOTKEY_ESC_ID: i32 = 2;
+    const HOTKEY_BACKSPACE_ID: i32 = 3;
 
     // hWnd = HWND(0) => message delivered to thread message queue
     let hwnd_screen = Some(HWND::default());
@@ -72,9 +74,16 @@ fn main() -> windows::core::Result<()> {
     unsafe {
         RegisterHotKey(hwnd_screen, HOTKEY_DEL_ID, MOD_NOREPEAT, VK_DELETE.0 as u32)?;
         RegisterHotKey(hwnd_screen, HOTKEY_ESC_ID, MOD_NOREPEAT, VK_ESCAPE.0 as u32)?;
+        RegisterHotKey(
+            hwnd_screen,
+            HOTKEY_BACKSPACE_ID,
+            MOD_NOREPEAT,
+            VK_BACK.0 as u32,
+        )?;
     }
 
-    println!("Hotkey registered: DELETE. Press DELETE to toggle. ESC or Ctrl+C to exit.");
+    println!("BOXER v{}", env!("CARGO_PKG_VERSION"));
+    println!("Press DELETE to toggle on/off. BACKSPACE for cache reset. ESC or Ctrl+C to exit.");
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
     let mut simulations: Vec<Arc<SimulationState>> = vec![];
@@ -168,6 +177,11 @@ fn main() -> windows::core::Result<()> {
                         println!("Quitting application...");
                         break;
                     }
+                    HOTKEY_BACKSPACE_ID => {
+                        simulations.iter().for_each(|sim| {
+                            sim.reset();
+                        });
+                    }
                     _ => {}
                 }
             }
@@ -177,6 +191,7 @@ fn main() -> windows::core::Result<()> {
 
         UnregisterHotKey(hwnd_screen, HOTKEY_DEL_ID)?;
         UnregisterHotKey(hwnd_screen, HOTKEY_ESC_ID)?;
+        UnregisterHotKey(hwnd_screen, HOTKEY_BACKSPACE_ID)?;
     }
 
     for handle in handles {

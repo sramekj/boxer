@@ -110,6 +110,10 @@ impl SimulationState {
         }
     }
 
+    pub fn reset(&self) {
+        self.skill_tracker.reset();
+    }
+
     pub fn run(&self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
@@ -257,8 +261,8 @@ impl SimulationState {
     pub fn enable_toggle(&self) {
         let prev = self.is_enabled.fetch_xor(true, Ordering::SeqCst);
         println!(
-            "Enabled: {} for class: {:?}",
-            !prev, self.window_config.class_config.class
+            "{:?} enabled: {}",
+            self.window_config.class_config.class, !prev
         );
     }
 
