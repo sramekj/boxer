@@ -1,4 +1,5 @@
 use crate::simulation::loot::LootQuality;
+use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::{CharState, DebugObj, WindowObj};
 use crate::win_util::{PixelColor, focus_window, get_pixel_color_local};
 use colored::Colorize;
@@ -140,10 +141,12 @@ impl StateChecker for WindowObj {
             .into_iter()
             .map(|offset| Location(650 + offset, 488, vec![PixelColor(0x0091CB)]))
             .collect();
+        let _lock = CRITICAL_SECTION.lock().unwrap();
         _ = focus_window(self.hwnd).as_bool();
         let result = locations.iter().any(|loc| {
             check_location_no_focus(self.hwnd, loc.clone(), true, DEBUG_RUNE_COLOR).is_some()
         });
+        drop(_lock);
         println!("Is rune: {:?}", result);
         result
     }
@@ -177,8 +180,11 @@ fn check_location<T>(
     result_state: T,
     debug_color: bool,
 ) -> Option<T> {
+    let _lock = CRITICAL_SECTION.lock().unwrap();
     _ = focus_window(hwnd).as_bool();
-    check_location_no_focus(hwnd, location, result_state, debug_color)
+    let result = check_location_no_focus(hwnd, location, result_state, debug_color);
+    drop(_lock);
+    result
 }
 
 //x, y, vector of colors (or)
