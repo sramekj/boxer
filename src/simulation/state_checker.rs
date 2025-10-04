@@ -121,6 +121,14 @@ impl StateChecker for WindowObj {
                 break;
             }
         }
+        if quality == LootQuality::Unknown {
+            //debug print color
+            _ = get_loot_quality_markers()
+                .iter()
+                .map(|(k, _)| k.clone())
+                .last()
+                .and_then(|loc| check_location(self.hwnd, loc, LootQuality::Unknown, true));
+        }
         println!("Loot quality: {:?}", quality);
         quality
     }
