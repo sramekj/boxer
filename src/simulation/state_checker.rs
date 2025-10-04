@@ -148,7 +148,6 @@ fn check_location_no_focus<T>(
 ) -> Option<T> {
     if let Ok(color) = get_pixel_color_local(hwnd, location.0, location.1) {
         if debug_color {
-            print!("Found color: ");
             color.println();
         }
         if location.2.contains(&color) {
@@ -233,14 +232,16 @@ fn get_dead_marker(number_of_players: usize) -> Location {
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let mut hm: HashMap<Location, LootQuality> = HashMap::new();
+    let x = 504;
+    let y = 506;
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x4D4D74), PixelColor(0x777777)]),
+        Location(x, y, vec![PixelColor(0x4D4D74), PixelColor(0x777777)]),
         LootQuality::Normal,
     );
     hm.insert(
         Location(
-            519,
-            506,
+            x,
+            y,
             vec![
                 PixelColor(0x111138),
                 PixelColor(0x1A1A1A),
@@ -251,8 +252,8 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     );
     hm.insert(
         Location(
-            519,
-            506,
+            x,
+            y,
             vec![
                 PixelColor(0xFF9A2A),
                 PixelColor(0xA46342),
@@ -262,13 +263,13 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
         LootQuality::Magic,
     );
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x00FFFF), PixelColor(0x00A4CB)]),
+        Location(x, y, vec![PixelColor(0x00FFFF), PixelColor(0x00A4CB)]),
         LootQuality::Rare,
     );
     hm.insert(
         Location(
-            519,
-            506,
+            x,
+            y,
             vec![
                 PixelColor(0x00C400),
                 PixelColor(0x026B2A),
@@ -277,10 +278,16 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
         ),
         LootQuality::Set,
     );
-
-    //[489, 507]    Color: #FF82D8
     hm.insert(
-        Location(519, 506, vec![PixelColor(0x9F4396), PixelColor(0xF868AD)]),
+        Location(
+            x,
+            y,
+            vec![
+                PixelColor(0x9F4396),
+                PixelColor(0xF868AD),
+                PixelColor(0xFF82D8),
+            ],
+        ),
         LootQuality::Epic,
     );
     // hm.insert(
