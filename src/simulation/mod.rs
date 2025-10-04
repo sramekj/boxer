@@ -144,13 +144,16 @@ impl SimulationState {
                     }
                     if state == CharState::Looting {
                         println!("Initiate looting...");
+                        let mut loot_counter = 0;
                         loop {
                             //keep looting until the state changes, or we failed to loot (needs manual intervention)
                             let looted = self.loot_cycle();
+                            loot_counter += 1;
                             thread::sleep(Duration::from_millis(100));
                             let new_state =
                                 self.state_checker.get_state(self.num_active_characters);
-                            if !looted || new_state != CharState::Looting {
+                            //let's break if we go over 10 attempts - we might be hung-up because of unknown loot quality check
+                            if !looted || new_state != CharState::Looting || loot_counter > 10 {
                                 println!("Looting ended");
                                 break;
                             }
