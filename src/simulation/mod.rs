@@ -150,7 +150,6 @@ impl SimulationState {
                             //keep looting until the state changes, or we failed to loot (needs manual intervention)
                             let looted = self.loot_cycle();
                             loot_counter += 1;
-                            thread::sleep(Duration::from_millis(100));
                             let new_state =
                                 self.state_checker.get_state(self.num_active_characters);
                             //let's break if we go over 10 attempts - we might be hung-up because of unknown loot quality check
@@ -164,7 +163,7 @@ impl SimulationState {
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
                         if prev_state != CharState::Fighting {
                             //wait if we just started fighting... otherwise the first cast will not go off
-                            thread::sleep(Duration::from_millis(100));
+                            thread::sleep(Duration::from_millis(200));
                         }
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
@@ -188,17 +187,20 @@ impl SimulationState {
                                     );
                                     for player_index in 0..self.num_active_characters {
                                         self.interactor.target_player(player_index);
-                                        thread::sleep(Duration::from_millis(100));
                                         self.cast(&skill);
+                                        //track only self-cast the cooldown
+                                        if player_index == 0 {
+                                            self.skill_tracker.track_cast(&skill);
+                                        }
                                     }
                                     // re-target himself
                                     self.interactor.target_player(0);
                                 } else {
                                     // try to cast a single spell
                                     self.cast(&skill);
+                                    // and track the cooldown
+                                    self.skill_tracker.track_cast(&skill);
                                 }
-                                // and track the cooldown
-                                self.skill_tracker.track_cast(&skill);
                                 skip_wait = true;
                             }
                         });
