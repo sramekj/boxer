@@ -7,7 +7,7 @@ use windows::Win32::Foundation::HWND;
 
 const DEBUG_RUNE_COLOR: bool = false;
 const DEBUG_LOCATION_COLOR: bool = false;
-const COLOR_DISTANCE_TOLERANCE: u8 = 5;
+const COLOR_DISTANCE_TOLERANCE: u8 = 2;
 
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
