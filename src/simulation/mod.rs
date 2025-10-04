@@ -21,7 +21,7 @@ use crate::simulation::state_checker::StateChecker;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use windows::Win32::Foundation::HWND;
 
 pub struct DebugObj {
@@ -127,6 +127,7 @@ impl SimulationState {
             let mut skip_wait = false;
 
             let state = self.state_checker.get_state(self.num_active_characters);
+            let state_check_at = Instant::now();
 
             // did we recently die or left town?
             let need_reset_states = [CharState::InTown, CharState::Dead];
@@ -168,8 +169,11 @@ impl SimulationState {
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
                             //make sure we did not die inside a long rotation
-                            let updated_state =
-                                self.state_checker.get_state(self.num_active_characters);
+                            let mut updated_state = state;
+                            if (Instant::now() - state_check_at) > Duration::from_secs(1) {
+                                updated_state =
+                                    self.state_checker.get_state(self.num_active_characters);
+                            }
                             // if we can cast (or buff/debuff is down)
                             if self.skill_tracker.should_cast(&skill, updated_state) {
                                 if let Some(cast_all_skills) =
