@@ -7,6 +7,7 @@ use windows::Win32::Foundation::HWND;
 
 const DEBUG_RUNE_COLOR: bool = false;
 const DEBUG_LOCATION_COLOR: bool = false;
+const COLOR_DISTANCE_TOLERANCE: u8 = 10;
 
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
@@ -124,9 +125,9 @@ impl StateChecker for WindowObj {
         if quality == LootQuality::Unknown {
             //debug print color
             _ = get_loot_quality_markers()
-                .iter()
-                .map(|(k, _)| k.clone())
+                .keys()
                 .last()
+                .cloned()
                 .and_then(|loc| check_location(self.hwnd, loc, LootQuality::Unknown, true));
         }
         println!("Loot quality: {:?}", quality);
@@ -159,7 +160,11 @@ fn check_location_no_focus<T>(
             print!("Color: ");
             color.println();
         }
-        if location.2.contains(&color) {
+        if location
+            .2
+            .iter()
+            .any(|c| c.is_similar_to(color, COLOR_DISTANCE_TOLERANCE))
+        {
             return Some(result_state);
         }
     }
@@ -244,7 +249,15 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
     let x = 504;
     let y = 506;
     hm.insert(
-        Location(x, y, vec![PixelColor(0x4D4D74), PixelColor(0x777777)]),
+        Location(
+            x,
+            y,
+            vec![
+                PixelColor(0x4D4D74),
+                PixelColor(0x777777),
+                PixelColor(0x767676),
+            ],
+        ),
         LootQuality::Normal,
     );
     hm.insert(
@@ -268,6 +281,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0xA46342),
                 PixelColor(0x8C5440),
                 PixelColor(0xB97728),
+                PixelColor(0xCA7A22),
             ],
         ),
         LootQuality::Magic,
@@ -284,6 +298,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0x00C400),
                 PixelColor(0x026B2A),
                 PixelColor(0x007E27),
+                PixelColor(0x01CACA),
             ],
         ),
         LootQuality::Set,
@@ -296,6 +311,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0x9F4396),
                 PixelColor(0xF868AD),
                 PixelColor(0xFF82D8),
+                PixelColor(0xF97BAF),
             ],
         ),
         LootQuality::Epic,
