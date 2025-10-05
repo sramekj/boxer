@@ -167,11 +167,11 @@ impl SimulationState {
                             //wait if we have just started fighting... otherwise the first cast may not go off
                             thread::sleep(Duration::from_millis(200));
                         }
-                        if !auto_attacking {
+                        if !auto_attacking && state == CharState::Fighting {
                             // auto-attack just once
-                            self.interactor
+                            auto_attacking = self
+                                .interactor
                                 .auto_attack(self.window_config.class_config.auto_attack);
-                            auto_attacking = true;
                         }
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
