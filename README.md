@@ -6,7 +6,7 @@ automatic rotation for 3 classes (Warlock, Warrior, Enchanter)
 multi client support  
 automatic looting/discarding of loot (including full inventory detection)  
 looting all runes  
-implemented loot filter
+implemented loot filter  
 automatic buffing of party members  
 accurate detection of different states  (death, in town, fighting, looting...)  
 selection of auto-attack (primary/ranged)  
