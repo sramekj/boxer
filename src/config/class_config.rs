@@ -9,6 +9,13 @@ pub struct ClassConfig {
     pub no_gcd_skills: Option<Vec<String>>,
     pub cd_reductions: Option<Vec<(String, f32)>>,
     pub loot_filter: Vec<LootQuality>,
+    pub auto_attack: AutoAttack,
+}
+
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Copy, Clone)]
+pub enum AutoAttack {
+    Primary,
+    Ranged,
 }
 
 impl ClassConfig {
@@ -18,6 +25,7 @@ impl ClassConfig {
         no_gcd_skills: Option<Vec<String>>,
         cd_reductions: Option<Vec<(String, f32)>>,
         loot_filter: Vec<LootQuality>,
+        auto_attack: AutoAttack,
     ) -> ClassConfig {
         ClassConfig {
             class,
@@ -25,6 +33,7 @@ impl ClassConfig {
             no_gcd_skills,
             cd_reductions,
             loot_filter,
+            auto_attack,
         }
     }
 }

@@ -118,6 +118,7 @@ impl SimulationState {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();
         let is_enabled = self.is_enabled.clone();
+        let mut auto_attacking = false;
         let mut prev_state: CharState = CharState::InTown;
         while is_running.load(Ordering::SeqCst) {
             if !is_enabled.load(Ordering::SeqCst) {
@@ -133,6 +134,7 @@ impl SimulationState {
             let need_reset_states = [CharState::InTown, CharState::Dead];
             if need_reset_states.contains(&prev_state) && !need_reset_states.contains(&state) {
                 self.skill_tracker.reset();
+                auto_attacking = false;
             }
 
             match state {
@@ -162,8 +164,14 @@ impl SimulationState {
                     }
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
                         if prev_state != CharState::Fighting {
-                            //wait if we just started fighting... otherwise the first cast will not go off
+                            //wait if we have just started fighting... otherwise the first cast may not go off
                             thread::sleep(Duration::from_millis(200));
+                        }
+                        if !auto_attacking {
+                            // auto-attack just once
+                            self.interactor
+                                .auto_attack(self.window_config.class_config.auto_attack);
+                            auto_attacking = true;
                         }
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {

@@ -69,7 +69,7 @@ impl Skill {
 #[cfg(test)]
 mod tests {
     use crate::config::Class;
-    use crate::config::class_config::ClassConfig;
+    use crate::config::class_config::{AutoAttack, ClassConfig};
     use crate::simulation::keys::{SKILL_BUTTON_1, SKILL_BUTTON_4};
     use crate::simulation::shared_state::SharedState;
     use crate::simulation::skill::Skill;
@@ -194,11 +194,19 @@ mod tests {
             None,
             Some(vec![("Engulfing Darkness".to_string(), 49.0)]),
             vec![],
+            AutoAttack::Primary,
         );
 
         assert(skill.get_cooldown(class_config), 22.95);
 
-        class_config = ClassConfig::new(Class::Warlock, None, None, None, vec![]);
+        class_config = ClassConfig::new(
+            Class::Warlock,
+            None,
+            None,
+            None,
+            vec![],
+            AutoAttack::Primary,
+        );
 
         assert(skill.get_cooldown(class_config), 45.0);
     }
