@@ -235,7 +235,7 @@ fn get_loot_marker() -> Location {
 }
 
 fn get_fight_marker() -> Location {
-    Location(1231, 598, vec![PixelColor(0x4D2209)])
+    Location(1232, 536, vec![PixelColor(0x4D2209), PixelColor(0x5E2D0E)])
 }
 
 fn get_dead_marker(number_of_players: usize) -> Location {
@@ -330,13 +330,14 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0xF868AD),
                 PixelColor(0xFF82D8),
                 PixelColor(0xF97BAF),
+                PixelColor(0xDB639D),
             ],
         ),
         LootQuality::Epic,
     );
-    // hm.insert(
-    //     Location(519, 506, vec![PixelColor(0xFF9A2A)]),
-    //     LootQuality::Legendary,
-    // );
+    hm.insert(
+        Location(x, y, vec![PixelColor(0x0158BB)]),
+        LootQuality::Legendary,
+    );
     hm
 }
