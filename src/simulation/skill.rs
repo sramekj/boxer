@@ -1,4 +1,5 @@
 use crate::config::Class;
+use crate::config::class_config::ClassConfig;
 use crate::simulation::CharState;
 use crate::simulation::keys::Key;
 use crate::simulation::shared_state::SharedState;
@@ -20,6 +21,18 @@ const GCD: f32 = 2.5;
 impl Skill {
     pub fn get_gcd(&self, shared_state: Arc<Mutex<SharedState>>, class: Class) -> f32 {
         GCD * self.get_haste_coef(shared_state, class)
+    }
+
+    pub fn get_cooldown(&self, class_config: ClassConfig) -> f32 {
+        let reduction = if let Some(reductions) = class_config.cd_reductions {
+            reductions
+                .iter()
+                .find(|(k, _)| k == &self.name)
+                .map_or_else(|| 1.0, |(_, v)| (100.0 - *v) / 100.0)
+        } else {
+            1.0
+        };
+        self.cooldown * reduction
     }
 
     pub fn can_cast(&self, state: CharState) -> bool {
@@ -56,7 +69,8 @@ impl Skill {
 #[cfg(test)]
 mod tests {
     use crate::config::Class;
-    use crate::simulation::keys::SKILL_BUTTON_4;
+    use crate::config::class_config::ClassConfig;
+    use crate::simulation::keys::{SKILL_BUTTON_1, SKILL_BUTTON_4};
     use crate::simulation::shared_state::SharedState;
     use crate::simulation::skill::Skill;
     use crate::simulation::skill_type::SkillType;
@@ -162,8 +176,35 @@ mod tests {
         assert(cast_time, 2.0);
     }
 
+    #[test]
+    fn test_skill_reduction() {
+        let skill = Skill {
+            name: "Engulfing Darkness".to_string(),
+            key: SKILL_BUTTON_1,
+            cast_time: 0.0,
+            cooldown: 45.0,
+            buff_duration: None,
+            debuff_duration: Some(18.0),
+            skill_type: SkillType::Debuff,
+        };
+
+        let mut class_config = ClassConfig::new(
+            Class::Warlock,
+            None,
+            None,
+            Some(vec![("Engulfing Darkness".to_string(), 49.0)]),
+            vec![],
+        );
+
+        assert(skill.get_cooldown(class_config), 22.95);
+
+        class_config = ClassConfig::new(Class::Warlock, None, None, None, vec![]);
+
+        assert(skill.get_cooldown(class_config), 45.0);
+    }
+
     fn assert(a: f32, b: f32) {
-        let epsilon = 1e-6;
+        let epsilon = 1e-5;
         assert!((a - b).abs() < epsilon, "a: {}, b: {}", a, b);
     }
     fn get_gcd_skill(

@@ -1,4 +1,4 @@
-mod class_config;
+pub mod class_config;
 mod hex_hwnd;
 
 use crate::config::class_config::ClassConfig;
@@ -84,6 +84,7 @@ impl Default for Config {
                         Class::Enchanter,
                         Some(vec!["Augmentation".to_string(), "Clarity".to_string()]),
                         None,
+                        None,
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,
@@ -106,6 +107,7 @@ impl Default for Config {
                         Class::Warlock,
                         None,
                         None,
+                        Some(vec![("Engulfing Darkness".to_string(), 49.0)]),
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,
@@ -132,6 +134,7 @@ impl Default for Config {
                             "Bulwark".to_string(),
                             "Double Throw".to_string(),
                         ]),
+                        None,
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,

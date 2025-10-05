@@ -331,6 +331,7 @@ fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
                 PixelColor(0xFF82D8),
                 PixelColor(0xF97BAF),
                 PixelColor(0xDB639D),
+                PixelColor(0xF171AE),
             ],
         ),
         LootQuality::Epic,

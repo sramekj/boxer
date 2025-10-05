@@ -1,3 +1,4 @@
+use crate::config::class_config::ClassConfig;
 use crate::simulation::CharState;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
@@ -13,15 +14,17 @@ pub struct SkillTracker {
     buff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     shared_state: Arc<Mutex<SharedState>>,
+    class_config: ClassConfig,
 }
 
 impl SkillTracker {
-    pub fn new(shared_state: Arc<Mutex<SharedState>>) -> Self {
+    pub fn new(shared_state: Arc<Mutex<SharedState>>, class_config: ClassConfig) -> Self {
         SkillTracker {
             last_cast: Arc::new(Mutex::new(HashMap::new())),
             buff_tracker: Arc::new(Mutex::new(HashMap::new())),
             debuff_tracker: Arc::new(Mutex::new(HashMap::new())),
             shared_state,
+            class_config,
         }
     }
 
@@ -49,7 +52,7 @@ impl SkillTracker {
         let debuff_map = debuff_map.lock().unwrap();
         if let Some(last_cast) = last_cast_map.get(&skill.name) {
             let diff = now - *last_cast;
-            if diff.as_secs_f32() < skill.cooldown {
+            if diff.as_secs_f32() < skill.get_cooldown(self.class_config.clone()) {
                 println!(
                     "{}",
                     format!(
@@ -101,7 +104,7 @@ impl SkillTracker {
             Some(last_cast) => {
                 let now = Instant::now();
                 let diff = now - *last_cast;
-                diff.as_secs_f32() < skill.cooldown
+                diff.as_secs_f32() < skill.get_cooldown(self.class_config.clone())
             }
         }
     }
