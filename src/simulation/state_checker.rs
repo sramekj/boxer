@@ -14,6 +14,7 @@ pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
     fn is_rune(&self) -> bool;
+    fn is_inventory_full(&self) -> bool;
 }
 
 impl StateChecker for DebugObj {
@@ -31,6 +32,10 @@ impl StateChecker for DebugObj {
 
     fn is_rune(&self) -> bool {
         println!("Is rune: false");
+        false
+    }
+
+    fn is_inventory_full(&self) -> bool {
         false
     }
 }
@@ -150,6 +155,14 @@ impl StateChecker for WindowObj {
         println!("Is rune: {:?}", result);
         result
     }
+
+    fn is_inventory_full(&self) -> bool {
+        let result = check_location(self.hwnd, get_inventory_full_marker(), true, false).is_none();
+        if result {
+            println!("{}", "Inventory full".red());
+        }
+        result
+    }
 }
 
 fn check_location_no_focus<T>(
@@ -248,6 +261,10 @@ fn get_dead_marker(number_of_players: usize) -> Location {
         _ => 597,
     };
     Location(x, 623, vec![PixelColor(0x313131)])
+}
+
+fn get_inventory_full_marker() -> Location {
+    Location(159, 411, vec![PixelColor(0x282828)])
 }
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {

@@ -7,6 +7,6 @@ auto inventory management (sell stuff in town, store in the bank)
 loot bugs  
 auto-attack select (Ranger prefers ranged)  
 automatic hp-pots  
-stop looting when inventory is full  
+
 
 

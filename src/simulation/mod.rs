@@ -143,7 +143,7 @@ impl SimulationState {
                     if state == CharState::AtShrine && self.interactor.interact() {
                         println!("Interacted with a shrine");
                     }
-                    if state == CharState::Looting {
+                    if state == CharState::Looting && !self.state_checker.is_inventory_full() {
                         println!("Initiate looting...");
                         let mut loot_counter = 0;
                         loop {
@@ -155,10 +155,10 @@ impl SimulationState {
                             //let's break if we go over 10 attempts - we might be hung-up because of unknown loot quality check
                             if !looted || new_state != CharState::Looting || loot_counter > 10 {
                                 println!("Looting ended");
+                                skip_wait = true;
                                 break;
                             }
                         }
-                        skip_wait = true;
                     }
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
                         if prev_state != CharState::Fighting {
