@@ -163,9 +163,9 @@ impl SimulationState {
                         }
                     }
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
-                        if prev_state != CharState::Fighting {
+                        if prev_state != CharState::Fighting && state == CharState::Fighting {
                             //wait if we have just started fighting... otherwise the first cast may not go off
-                            thread::sleep(Duration::from_millis(200));
+                            thread::sleep(Duration::from_millis(500));
                         }
                         if !auto_attacking && state == CharState::Fighting {
                             // auto-attack just once

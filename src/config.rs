@@ -65,7 +65,7 @@ impl Default for Config {
         Config {
             skill_haste_percent: 16.0,
             frenzy_duration: 20.0,
-            frenzy_haste_percent: 20.0,
+            frenzy_haste_percent: 22.0,
             bulwark_duration: 10.0,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
