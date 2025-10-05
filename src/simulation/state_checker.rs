@@ -264,7 +264,7 @@ fn get_dead_marker(number_of_players: usize) -> Location {
 }
 
 fn get_inventory_full_marker() -> Location {
-    Location(159, 411, vec![PixelColor(0x282828)])
+    Location(145, 422, vec![PixelColor(0x1B1B1B), PixelColor(0x070707)])
 }
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
