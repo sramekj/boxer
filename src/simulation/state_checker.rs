@@ -15,6 +15,7 @@ pub trait StateChecker {
     fn get_loot_quality(&self) -> LootQuality;
     fn is_rune(&self) -> bool;
     fn is_inventory_full(&self) -> bool;
+    fn is_inventory_opened(&self) -> bool;
     fn is_on_low_hp(&self, number_of_players: usize) -> bool;
 }
 
@@ -38,6 +39,10 @@ impl StateChecker for DebugObj {
 
     fn is_inventory_full(&self) -> bool {
         false
+    }
+
+    fn is_inventory_opened(&self) -> bool {
+        true
     }
 
     fn is_on_low_hp(&self, _: usize) -> bool {
@@ -175,6 +180,16 @@ impl StateChecker for WindowObj {
         result
     }
 
+    fn is_inventory_opened(&self) -> bool {
+        check_location(
+            self.hwnd,
+            get_inventory_opened_marker(),
+            true,
+            DEBUG_LOCATION_COLOR,
+        )
+        .is_some()
+    }
+
     fn is_on_low_hp(&self, number_of_players: usize) -> bool {
         check_location(
             self.hwnd,
@@ -295,6 +310,10 @@ fn get_low_hp_marker(number_of_players: usize) -> Location {
 
 fn get_inventory_full_marker() -> Location {
     Location(145, 422, vec![PixelColor(0x1B1B1B), PixelColor(0x070707)])
+}
+
+fn get_inventory_opened_marker() -> Location {
+    Location(164, 441, vec![PixelColor(0x48C1EA)])
 }
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {

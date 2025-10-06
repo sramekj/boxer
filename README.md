@@ -24,8 +24,7 @@ auto inventory management (sell stuff in town, store in the bank)
 auto level up  
 
 ### TODO (will do)
-loot bugs   
-auto open inventory  
+loot bugs    
 eventually add support for more classes  
 
 ### Notes

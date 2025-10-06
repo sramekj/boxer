@@ -1,6 +1,6 @@
 use crate::config::class_config::AutoAttack;
 use crate::simulation::keys::{
-    AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, Key, LOOT_INTERACT,
+    AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, INVENTORY, Key, LOOT_INTERACT,
 };
 use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::skill::Skill;
@@ -18,6 +18,7 @@ pub trait Interactor {
     fn target_player(&self, player_index: usize) -> bool;
     fn auto_attack(&self, auto_attack: AutoAttack) -> bool;
     fn use_hp_pot(&self) -> bool;
+    fn inventory_toggle(&self) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -54,6 +55,11 @@ impl Interactor for DebugObj {
 
     fn use_hp_pot(&self) -> bool {
         println!("{}", "Using a HP potion".red());
+        true
+    }
+
+    fn inventory_toggle(&self) -> bool {
+        println!("{}", "Toggling an inventory".bright_purple());
         true
     }
 }
@@ -127,6 +133,15 @@ impl Interactor for WindowObj {
         println!("{}", "Using a HP potion".red());
         let _lock = CRITICAL_SECTION.lock().unwrap();
         let result = focus_window(self.hwnd).as_bool() && send_key_vk(HEALTH_POT).is_ok();
+        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
+        drop(_lock);
+        result
+    }
+
+    fn inventory_toggle(&self) -> bool {
+        println!("{}", "Toggling an inventory".bright_purple());
+        let _lock = CRITICAL_SECTION.lock().unwrap();
+        let result = focus_window(self.hwnd).as_bool() && send_key_vk(INVENTORY).is_ok();
         thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
         drop(_lock);
         result

@@ -127,6 +127,11 @@ impl SimulationState {
             }
             let mut skip_wait = false;
 
+            // we need to open inventory if it is not opened (it's needed for inventory checks during looting)
+            if !self.state_checker.is_inventory_opened() {
+                self.interactor.inventory_toggle();
+            }
+
             let state = self.state_checker.get_state(self.num_active_characters);
             let state_check_at = Instant::now();
 
