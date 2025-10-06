@@ -184,18 +184,18 @@ impl SkillTracker {
         self.can_cast(skill, state) && should_attack
     }
 
-    //TODO: perhaps change to 5 after testing so we can reapply buffs/debuffs before they drop down
-    const BUFF_DEBUFF_DURATION_TOLERANCE_SEC: u64 = 0;
+    // we want to reapply buffs/debuffs before they drop down
+    const BUFF_DURATION_TOLERANCE_SEC: f32 = 3.0;
+    const DEBUFF_DURATION_TOLERANCE_SEC: f32 = 1.0;
 
     pub fn has_buff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
         let map = Arc::clone(&self.buff_tracker);
         let map = map.lock().unwrap();
         if let Some(last_cast) = map.get(&skill.name) {
-            let diff =
-                now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE_SEC) - *last_cast;
+            let diff = now - *last_cast;
             if let Some(buff_duration) = skill.buff_duration {
-                diff.as_secs_f32() < buff_duration
+                diff.as_secs_f32() < (buff_duration - Self::BUFF_DURATION_TOLERANCE_SEC)
             } else {
                 false
             }
@@ -209,10 +209,9 @@ impl SkillTracker {
         let map = Arc::clone(&self.debuff_tracker);
         let map = map.lock().unwrap();
         if let Some(last_cast) = map.get(&skill.name) {
-            let diff =
-                now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE_SEC) - *last_cast;
+            let diff = now - *last_cast;
             if let Some(debuff_duration) = skill.debuff_duration {
-                diff.as_secs_f32() < debuff_duration
+                diff.as_secs_f32() < (debuff_duration - Self::DEBUFF_DURATION_TOLERANCE_SEC)
             } else {
                 false
             }

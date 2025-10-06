@@ -179,55 +179,7 @@ impl SimulationState {
                                 .auto_attack(self.window_config.class_config.auto_attack);
                         }
 
-                        // try to cast - go through all skills, they are sorted by priority
-                        self.rotation.skills.clone().into_iter().for_each(|skill| {
-                            //make sure we did not die inside a long rotation
-                            let mut updated_state = state;
-                            if (Instant::now() - state_check_at) > Duration::from_secs(1) {
-                                updated_state =
-                                    self.state_checker.get_state(self.num_active_characters);
-                            }
-
-                            // we should try to use a potion if on low HP if it is not on a cooldown
-                            if updated_state == CharState::Fighting
-                                && self.state_checker.is_on_low_hp(self.num_active_characters)
-                                && !self.skill_tracker.is_hp_pot_on_cooldown()
-                            {
-                                self.interactor.use_hp_pot();
-                                self.skill_tracker.track_hp_pot();
-                            }
-
-                            // if we can cast (or buff/debuff is down)
-                            if self.skill_tracker.should_cast(&skill, updated_state) {
-                                if let Some(cast_all_skills) =
-                                    &self.window_config.class_config.cast_all_skills
-                                    && cast_all_skills.contains(&skill.name)
-                                    && self.num_active_characters > 1
-                                {
-                                    // let's buff other players
-                                    println!(
-                                        "Initiating buff sequence for {} in a party of {}",
-                                        skill.name, self.num_active_characters
-                                    );
-                                    for player_index in 0..self.num_active_characters {
-                                        self.interactor.target_player(player_index);
-                                        self.cast(&skill);
-                                        //track only self-cast the cooldown
-                                        if player_index == 0 {
-                                            self.skill_tracker.track_cast(&skill);
-                                        }
-                                    }
-                                    // re-target himself
-                                    self.interactor.target_player(0);
-                                } else {
-                                    // try to cast a single spell
-                                    self.cast(&skill);
-                                    // and track the cooldown
-                                    self.skill_tracker.track_cast(&skill);
-                                }
-                                skip_wait = true;
-                            }
-                        });
+                        self.do_rotation(state, state_check_at, skip_wait);
                     }
                 }
             }
@@ -237,6 +189,56 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
         }
+    }
+
+    fn do_rotation(&self, state: CharState, state_check_at: Instant, mut skip_wait: bool) {
+        // try to cast - go through all skills, they are sorted by priority
+        self.rotation.skills.clone().into_iter().for_each(|skill| {
+            //make sure we did not die inside a long rotation
+            let mut updated_state = state;
+            if (Instant::now() - state_check_at) > Duration::from_secs(1) {
+                updated_state = self.state_checker.get_state(self.num_active_characters);
+            }
+
+            // we should try to use a potion if on low HP if it is not on a cooldown
+            if updated_state == CharState::Fighting
+                && self.state_checker.is_on_low_hp(self.num_active_characters)
+                && !self.skill_tracker.is_hp_pot_on_cooldown()
+            {
+                self.interactor.use_hp_pot();
+                self.skill_tracker.track_hp_pot();
+            }
+
+            // if we can cast (or buff/debuff is down)
+            if self.skill_tracker.should_cast(&skill, updated_state) {
+                if let Some(cast_all_skills) = &self.window_config.class_config.cast_all_skills
+                    && cast_all_skills.contains(&skill.name)
+                    && self.num_active_characters > 1
+                {
+                    // let's buff other players
+                    println!(
+                        "Initiating buff sequence for {} in a party of {}",
+                        skill.name, self.num_active_characters
+                    );
+                    for player_index in 0..self.num_active_characters {
+                        self.interactor.target_player(player_index);
+                        self.cast(&skill);
+                        //track only self-cast the cooldown
+                        if player_index == 0 {
+                            self.skill_tracker.track_cast(&skill);
+                        }
+                    }
+                    // re-target himself
+                    self.interactor.target_player(0);
+                } else {
+                    // try to cast a single spell
+                    self.cast(&skill);
+                    // and track the cooldown
+                    self.skill_tracker.track_cast(&skill);
+                }
+                skip_wait = true;
+            }
+        });
     }
 
     fn loot_cycle(&self) -> bool {
