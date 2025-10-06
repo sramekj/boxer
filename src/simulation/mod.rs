@@ -264,6 +264,9 @@ impl SimulationState {
         }
     }
 
+    fn ceil_to_two_decimal_places(val: f32) -> f32 {
+        (val * 100.0).ceil() / 100.0
+    }
     fn cast(&self, skill: &Skill) {
         if !self.interactor.cast_skill(skill) {
             eprintln!("Couldn't cast skill {}", skill.name);
@@ -274,7 +277,7 @@ impl SimulationState {
         );
         let ms = if cast_time > 0.0 {
             //let's wait for a cast time duration
-            (cast_time * 1000.0) as u64
+            (Self::ceil_to_two_decimal_places(cast_time) * 1000.0) as u64
         } else if self
             .window_config
             .class_config
@@ -291,7 +294,10 @@ impl SimulationState {
             ) * 1000.0) as u64
         };
         thread::sleep(Duration::from_millis(ms + self.cast_leeway_ms));
-        println!(" and it took {}s", ms as f32 / 1000.0);
+        println!(
+            " and it took {}s",
+            Self::ceil_to_two_decimal_places(ms as f32 / 1000.0)
+        );
     }
 
     pub fn enable_toggle(&self) {
