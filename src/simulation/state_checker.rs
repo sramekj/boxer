@@ -15,6 +15,7 @@ pub trait StateChecker {
     fn get_loot_quality(&self) -> LootQuality;
     fn is_rune(&self) -> bool;
     fn is_inventory_full(&self) -> bool;
+    fn is_on_low_hp(&self, number_of_players: usize) -> bool;
 }
 
 impl StateChecker for DebugObj {
@@ -36,6 +37,10 @@ impl StateChecker for DebugObj {
     }
 
     fn is_inventory_full(&self) -> bool {
+        false
+    }
+
+    fn is_on_low_hp(&self, _: usize) -> bool {
         false
     }
 }
@@ -157,11 +162,27 @@ impl StateChecker for WindowObj {
     }
 
     fn is_inventory_full(&self) -> bool {
-        let result = check_location(self.hwnd, get_inventory_full_marker(), true, false).is_none();
+        let result = check_location(
+            self.hwnd,
+            get_inventory_full_marker(),
+            true,
+            DEBUG_LOCATION_COLOR,
+        )
+        .is_none();
         if result {
             println!("{}", "Inventory full".red());
         }
         result
+    }
+
+    fn is_on_low_hp(&self, number_of_players: usize) -> bool {
+        check_location(
+            self.hwnd,
+            get_low_hp_marker(number_of_players),
+            true,
+            DEBUG_LOCATION_COLOR,
+        )
+        .is_some()
     }
 }
 
@@ -261,6 +282,11 @@ fn get_dead_marker(number_of_players: usize) -> Location {
         _ => 597,
     };
     Location(x, 623, vec![PixelColor(0x313131)])
+}
+
+fn get_low_hp_marker(number_of_players: usize) -> Location {
+    let marker = get_dead_marker(number_of_players);
+    Location(marker.0 + 20, marker.1, marker.2)
 }
 
 fn get_inventory_full_marker() -> Location {

@@ -1,5 +1,7 @@
 use crate::config::class_config::AutoAttack;
-use crate::simulation::keys::{AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, Key, LOOT_INTERACT};
+use crate::simulation::keys::{
+    AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, Key, LOOT_INTERACT,
+};
 use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::skill::Skill;
 use crate::simulation::{DebugObj, WindowObj};
@@ -15,6 +17,7 @@ pub trait Interactor {
     fn discard(&self) -> bool;
     fn target_player(&self, player_index: usize) -> bool;
     fn auto_attack(&self, auto_attack: AutoAttack) -> bool;
+    fn use_hp_pot(&self) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -46,6 +49,11 @@ impl Interactor for DebugObj {
 
     fn auto_attack(&self, auto_attack: AutoAttack) -> bool {
         println!("{}", format!("Auto-attacking {:?}", auto_attack).magenta());
+        true
+    }
+
+    fn use_hp_pot(&self) -> bool {
+        println!("{}", "Using a HP potion".red());
         true
     }
 }
@@ -110,6 +118,15 @@ impl Interactor for WindowObj {
             AutoAttack::Ranged => AUTO_RANGED_ATTACK,
         };
         let result = focus_window(self.hwnd).as_bool() && send_key_vk(key).is_ok();
+        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
+        drop(_lock);
+        result
+    }
+
+    fn use_hp_pot(&self) -> bool {
+        println!("{}", "Using a HP potion".red());
+        let _lock = CRITICAL_SECTION.lock().unwrap();
+        let result = focus_window(self.hwnd).as_bool() && send_key_vk(HEALTH_POT).is_ok();
         thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
         drop(_lock);
         result

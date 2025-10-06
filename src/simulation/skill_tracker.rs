@@ -5,6 +5,7 @@ use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
 use colored::Colorize;
 use std::collections::HashMap;
+use std::string::ToString;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -13,9 +14,13 @@ pub struct SkillTracker {
     last_cast: Arc<Mutex<HashMap<String, Instant>>>,
     buff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
+    potion_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     shared_state: Arc<Mutex<SharedState>>,
     class_config: ClassConfig,
 }
+
+const HP_POT_COOLDOWN: f32 = 6.0;
+const HP_POT_KEY: &'static str = "hp-potion";
 
 impl SkillTracker {
     pub fn new(shared_state: Arc<Mutex<SharedState>>, class_config: ClassConfig) -> Self {
@@ -23,6 +28,7 @@ impl SkillTracker {
             last_cast: Arc::new(Mutex::new(HashMap::new())),
             buff_tracker: Arc::new(Mutex::new(HashMap::new())),
             debuff_tracker: Arc::new(Mutex::new(HashMap::new())),
+            potion_tracker: Arc::new(Mutex::new(HashMap::new())),
             shared_state,
             class_config,
         }
@@ -33,12 +39,15 @@ impl SkillTracker {
         let last_cast_map = Arc::clone(&self.last_cast);
         let buff_map = Arc::clone(&self.buff_tracker);
         let debuff_map = Arc::clone(&self.debuff_tracker);
+        let potion_map = Arc::clone(&self.potion_tracker);
         let mut last_cast_map = last_cast_map.lock().unwrap();
         let mut buff_map = buff_map.lock().unwrap();
         let mut debuff_map = debuff_map.lock().unwrap();
+        let mut potion_map = potion_map.lock().unwrap();
         last_cast_map.clear();
         buff_map.clear();
         debuff_map.clear();
+        potion_map.clear();
         println!("Skill tracker has been reset");
     }
 
@@ -175,15 +184,16 @@ impl SkillTracker {
         self.can_cast(skill, state) && should_attack
     }
 
-    //TODO: change to 5.0 after testing
-    const BUFF_DEBUFF_DURATION_TOLERANCE: u64 = 0;
+    //TODO: perhaps change to 5 after testing so we can reapply buffs/debuffs before they drop down
+    const BUFF_DEBUFF_DURATION_TOLERANCE_SEC: u64 = 0;
 
     pub fn has_buff_applied(&self, skill: &Skill) -> bool {
         let now = Instant::now();
         let map = Arc::clone(&self.buff_tracker);
         let map = map.lock().unwrap();
         if let Some(last_cast) = map.get(&skill.name) {
-            let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
+            let diff =
+                now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE_SEC) - *last_cast;
             if let Some(buff_duration) = skill.buff_duration {
                 diff.as_secs_f32() < buff_duration
             } else {
@@ -199,7 +209,8 @@ impl SkillTracker {
         let map = Arc::clone(&self.debuff_tracker);
         let map = map.lock().unwrap();
         if let Some(last_cast) = map.get(&skill.name) {
-            let diff = now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE) - *last_cast;
+            let diff =
+                now - Duration::from_secs(Self::BUFF_DEBUFF_DURATION_TOLERANCE_SEC) - *last_cast;
             if let Some(debuff_duration) = skill.debuff_duration {
                 diff.as_secs_f32() < debuff_duration
             } else {
@@ -207,6 +218,33 @@ impl SkillTracker {
             }
         } else {
             false
+        }
+    }
+
+    pub fn track_hp_pot(&self) {
+        let now = Instant::now();
+        if self.is_hp_pot_on_cooldown() {
+            println!(
+                "{}",
+                "WARN: trying to use a health potion which should still be on a cooldown".red()
+            );
+            return;
+        }
+        let potion_map = Arc::clone(&self.potion_tracker);
+        let mut potion_map = potion_map.lock().unwrap();
+        potion_map.insert(HP_POT_KEY.to_string(), now);
+    }
+
+    pub fn is_hp_pot_on_cooldown(&self) -> bool {
+        let potion_map = Arc::clone(&self.potion_tracker);
+        let potion_map = potion_map.lock().unwrap();
+        match potion_map.get(HP_POT_KEY) {
+            None => false,
+            Some(last_cast) => {
+                let now = Instant::now();
+                let diff = now - *last_cast;
+                diff.as_secs_f32() < HP_POT_COOLDOWN
+            }
         }
     }
 }
