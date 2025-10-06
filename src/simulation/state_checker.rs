@@ -1,7 +1,7 @@
 use crate::simulation::loot::LootQuality;
 use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::{CharState, DebugObj, WindowObj};
-use crate::win_util::{PixelColor, focus_window, get_pixel_color_local};
+use crate::win_util::{PixelColor, focus_window, get_pixel_color_local, scan_line};
 use colored::Colorize;
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
@@ -151,17 +151,7 @@ impl StateChecker for WindowObj {
     }
 
     fn is_rune(&self) -> bool {
-        let location_offset = -10..10;
-        let locations: Vec<_> = location_offset
-            .into_iter()
-            .map(|offset| Location(650 + offset, 488, vec![PixelColor(0x0091CB)]))
-            .collect();
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        _ = focus_window(self.hwnd).as_bool();
-        let result = locations.iter().any(|loc| {
-            check_location_no_focus(self.hwnd, loc.clone(), true, DEBUG_RUNE_COLOR).is_some()
-        });
-        drop(_lock);
+        let result = check_line(self.hwnd, get_rune_line_location(), DEBUG_RUNE_COLOR);
         println!("Is rune: {:?}", result);
         result
     }
@@ -199,6 +189,31 @@ impl StateChecker for WindowObj {
         )
         .is_some()
     }
+}
+
+fn check_line(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> bool {
+    let _lock = CRITICAL_SECTION.lock().unwrap();
+    _ = focus_window(hwnd).as_bool();
+    let result = check_line_no_focus(hwnd, location, debug_color);
+    drop(_lock);
+    result
+}
+
+fn check_line_no_focus(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> bool {
+    let colors_to_find = location.3;
+    if let Ok(line) = scan_line(hwnd, location.0, location.1, location.2) {
+        let found = colors_to_find.iter().any(|color| line.contains(color));
+        if !found && debug_color {
+            print!("Colors: ");
+            for color in line {
+                color.print();
+                print!(" ");
+            }
+            println!();
+        }
+        return found;
+    }
+    false
 }
 
 fn check_location_no_focus<T>(
@@ -239,6 +254,14 @@ fn check_location<T>(
 //x, y, vector of colors (or)
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct Location(i32, i32, Vec<PixelColor>);
+
+//x1, x2, y, vector of colors (or)
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+struct LineLocation(i32, i32, i32, Vec<PixelColor>);
+
+fn get_rune_line_location() -> LineLocation {
+    LineLocation(640, 660, 488, vec![PixelColor(0x0091CB)])
+}
 
 fn get_town_marker() -> Location {
     Location(1218, 12, vec![PixelColor(0x2B99CE)])
