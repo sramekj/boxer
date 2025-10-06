@@ -19,7 +19,7 @@ pub struct SkillTracker {
     class_config: ClassConfig,
 }
 
-const HP_POT_COOLDOWN: f32 = 6.0;
+const HP_POT_COOLDOWN: f32 = 24.0;
 const HP_POT_KEY: &'static str = "hp-potion";
 
 impl SkillTracker {

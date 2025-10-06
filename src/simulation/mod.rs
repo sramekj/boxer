@@ -174,14 +174,6 @@ impl SimulationState {
                                 .auto_attack(self.window_config.class_config.auto_attack);
                         }
 
-                        // we should try to use a potion if on low HP if it is not on a cooldown
-                        if self.state_checker.is_on_low_hp(self.num_active_characters)
-                            && !self.skill_tracker.is_hp_pot_on_cooldown()
-                        {
-                            self.interactor.use_hp_pot();
-                            self.skill_tracker.track_hp_pot();
-                        }
-
                         // try to cast - go through all skills, they are sorted by priority
                         self.rotation.skills.clone().into_iter().for_each(|skill| {
                             //make sure we did not die inside a long rotation
@@ -190,6 +182,16 @@ impl SimulationState {
                                 updated_state =
                                     self.state_checker.get_state(self.num_active_characters);
                             }
+
+                            // we should try to use a potion if on low HP if it is not on a cooldown
+                            if updated_state == CharState::Fighting
+                                && self.state_checker.is_on_low_hp(self.num_active_characters)
+                                && !self.skill_tracker.is_hp_pot_on_cooldown()
+                            {
+                                self.interactor.use_hp_pot();
+                                self.skill_tracker.track_hp_pot();
+                            }
+
                             // if we can cast (or buff/debuff is down)
                             if self.skill_tracker.should_cast(&skill, updated_state) {
                                 if let Some(cast_all_skills) =

@@ -12,6 +12,7 @@ accurate detection of different states  (death, in town, fighting, looting...)
 selection of auto-attack (primary/ranged)  
 accurate tracking of cooldowns, cooldown reductions, skill haste (frenzy, augmentation)  
 tracking of buffs/debuffs  
+automatically using hp pots on low health  
 
 ### Tested classes
 Enchanter, Warlock, Warrior (atm.)  
@@ -24,7 +25,7 @@ auto level up
 
 ### TODO (will do)
 loot bugs   
-automatic HP pots on low HP  
+auto open inventory  
 eventually add support for more classes  
 
 ### Notes

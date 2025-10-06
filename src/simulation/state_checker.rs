@@ -286,7 +286,11 @@ fn get_dead_marker(number_of_players: usize) -> Location {
 
 fn get_low_hp_marker(number_of_players: usize) -> Location {
     let marker = get_dead_marker(number_of_players);
-    Location(marker.0 + 20, marker.1, marker.2)
+    Location(
+        marker.0 + 23,
+        marker.1,
+        vec![PixelColor(0x414141), PixelColor(0x434343)],
+    )
 }
 
 fn get_inventory_full_marker() -> Location {
