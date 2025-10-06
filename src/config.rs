@@ -16,6 +16,8 @@ pub struct Args {
     pub debug: bool,
     #[arg(short = 'm', long = "debug-mouse")]
     pub debug_mouse: bool,
+    #[arg(short = 'l', long = "debug-line")]
+    pub debug_line: bool,
     #[arg(long = "debug-interval", default_value = "1000")]
     pub debug_interval_ms: u64,
     #[arg(long = "debug-sim", default_value = "false")]

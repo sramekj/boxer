@@ -2,12 +2,19 @@ use crate::simulation::keys::Key;
 use colored::*;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
+use std::mem::zeroed;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
-use windows::Win32::Foundation::{COLORREF, GetLastError, HWND, LPARAM, POINT, WPARAM};
+use windows::Win32::Foundation::{
+    COLORREF, ERROR_INVALID_WINDOW_HANDLE, GetLastError, HWND, LPARAM, POINT, RECT, WPARAM,
+};
 use windows::Win32::Graphics::Gdi::{
-    ClientToScreen, CreatePen, DeleteObject, GetDC, GetPixel, GetStockObject, HGDIOBJ, NULL_BRUSH,
-    PS_SOLID, Rectangle, ReleaseDC, ScreenToClient, SelectObject, SetPixel,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, ClientToScreen, CreateCompatibleBitmap,
+    CreateCompatibleDC, CreatePen, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits,
+    GetPixel, GetStockObject, HGDIOBJ, NULL_BRUSH, PS_SOLID, Rectangle, ReleaseDC, SRCCOPY,
+    ScreenToClient, SelectObject, SetPixel,
 };
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness};
@@ -15,10 +22,10 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, FindWindowW, GetCursorPos, GetForegroundWindow, GetWindowTextLengthW,
-    GetWindowTextW, GetWindowThreadProcessId, HWND_TOP, IsIconic, IsWindowVisible, PostMessageW,
-    SW_RESTORE, SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow, SetWindowPos, ShowWindow,
-    WM_KEYDOWN, WM_KEYUP,
+    EnumWindows, FindWindowW, GetClientRect, GetCursorPos, GetForegroundWindow,
+    GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, HWND_TOP, IsIconic,
+    IsWindowVisible, PostMessageW, SW_RESTORE, SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow,
+    SetWindowPos, ShowWindow, WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
@@ -235,6 +242,158 @@ pub fn get_pixel_color_local(
 const DEBUG_RECTANGLE: bool = false;
 const DEBUG_DOT: bool = false;
 
+#[allow(dead_code)]
+fn save_bmp_file(filename: &str, width: i32, height: i32, pixels: &[u8]) -> std::io::Result<()> {
+    let file_size = 14 + size_of::<BITMAPINFOHEADER>() + pixels.len();
+    // BMP File Header (14 bytes)
+    let mut file_header = vec![
+        0x42, 0x4D, // 'BM'
+        0, 0, 0, 0, // Size of file
+        0, 0, // Reserved1
+        0, 0, // Reserved2
+        54, 0, 0, 0, // Pixel data offset (14 + 40)
+    ];
+    file_header[2..6].copy_from_slice(&(file_size as u32).to_le_bytes());
+    // BITMAPINFOHEADER (40 bytes)
+    let info_header = BITMAPINFOHEADER {
+        biSize: size_of::<BITMAPINFOHEADER>() as u32,
+        biWidth: width,
+        biHeight: -height, // Negative means top-down
+        biPlanes: 1,
+        biBitCount: 32,
+        biCompression: 0, // BI_RGB
+        biSizeImage: 0,
+        biXPelsPerMeter: 0,
+        biYPelsPerMeter: 0,
+        biClrUsed: 0,
+        biClrImportant: 0,
+    };
+    // Write to file
+    let mut file = File::create(filename)?;
+    file.write_all(&file_header)?;
+    file.write_all(unsafe {
+        std::slice::from_raw_parts(
+            &info_header as *const _ as *const u8,
+            size_of::<BITMAPINFOHEADER>(),
+        )
+    })?;
+    file.write_all(pixels)?;
+    println!("Saved the bmp file to {}", filename);
+    Ok(())
+}
+
+pub fn scan_line(
+    hwnd_opt: Option<HWND>,
+    x1: i32,
+    x2: i32,
+    y: i32,
+) -> windows::core::Result<Vec<PixelColor>> {
+    unsafe {
+        let hwnd = hwnd_opt.ok_or_else(|| Error::from(ERROR_INVALID_WINDOW_HANDLE))?;
+
+        let hdc_window = GetDC(None);
+        if hdc_window.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+        if hdc_mem.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        // Get window size
+        let mut rect = RECT::default();
+        GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
+
+        let width = rect.right - rect.left;
+        let height = rect.bottom - rect.top;
+
+        let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+        let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+
+        let mut point = POINT { x: 0, y: 0 };
+        ClientToScreen(hwnd, &mut point).as_bool();
+
+        //copy to mem device context
+        BitBlt(
+            hdc_mem,
+            0,
+            0,
+            width,
+            height,
+            Some(hdc_window),
+            point.x,
+            point.y,
+            SRCCOPY,
+        )
+        .map_err(|_| Error::from(GetLastError()))?;
+
+        //get image data
+        let mut bmi: BITMAPINFO = zeroed();
+        bmi.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -height; // negative to indicate top-down DIB
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32; // We want BGRA (4 bytes per pixel)
+        bmi.bmiHeader.biCompression = BI_RGB.0;
+
+        let row_stride = (width * 4) as usize;
+        let image_size = row_stride * (height as usize);
+        let mut buffer = vec![0u8; image_size];
+
+        let res = GetDIBits(
+            hdc_mem,
+            hbitmap,
+            0,
+            height as u32,
+            Some(buffer.as_mut_ptr() as *mut _),
+            &mut bmi,
+            DIB_RGB_COLORS,
+        );
+
+        if res == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+
+        // //DEBUG: write raw bytes to file
+        // if cfg!(debug_assertions) {
+        //     save_bmp_file("test.bmp", width, height, &buffer)?;
+        // }
+
+        let px1 = x1.clamp(0, width - 1) as usize;
+        let px2 = x2.clamp(0, width - 1) as usize;
+        let py = y.clamp(0, height - 1) as usize;
+
+        let index_from = py * row_stride + px1 * 4;
+        let index_to = py * row_stride + px2 * 4;
+
+        let mut result: Vec<PixelColor> = vec![];
+        for idx in (index_from..=index_to).step_by(4) {
+            let blue = buffer[idx];
+            let green = buffer[idx + 1];
+            let red = buffer[idx + 2];
+
+            let color = (red as u32) | ((green as u32) << 8) | ((blue as u32) << 16);
+            result.push(PixelColor(color));
+        }
+
+        // Clean up
+        if SelectObject(hdc_mem, old_obj).0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+        if !DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() {
+            return Err(Error::from(GetLastError()));
+        }
+        if !DeleteDC(hdc_mem).as_bool() {
+            return Err(Error::from(GetLastError()));
+        }
+        if ReleaseDC(None, hdc_window) == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+        Ok(result)
+    }
+}
+
 pub fn debug_mouse_color(_hwnd: HWND) {
     unsafe {
         let mut pt = POINT::default();
@@ -257,6 +416,35 @@ pub fn debug_mouse_color(_hwnd: HWND) {
 
         if DEBUG_DOT && debug_dot(pt.x, pt.y).is_err() {
             eprintln!("Failed to draw a dot");
+        }
+    }
+}
+
+pub fn debug_scanline(hwnd: HWND, len: i32) {
+    unsafe {
+        let mut pt = POINT::default();
+        if GetCursorPos(&mut pt).is_err() {
+            return;
+        }
+        if !ScreenToClient(hwnd, &mut pt).as_bool() {
+            return;
+        }
+        match scan_line(Some(hwnd), pt.x - len, pt.x + len, pt.y) {
+            Ok(colors) => {
+                print!("Colors: ");
+                for color in colors {
+                    color.print();
+                    print!(" ");
+                }
+                println!();
+            }
+            Err(e) => eprintln!(
+                "Failed to get color at [{}-{}, {}]: {:?}",
+                pt.x - len,
+                pt.x + len,
+                pt.y,
+                e
+            ),
         }
     }
 }
