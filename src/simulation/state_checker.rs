@@ -181,7 +181,13 @@ impl StateChecker for WindowObj {
     }
 
     fn is_inventory_opened(&self) -> bool {
-        check_location(self.hwnd, get_inventory_opened_marker(), true, true).is_some()
+        check_location(
+            self.hwnd,
+            get_inventory_opened_marker(),
+            true,
+            DEBUG_LOCATION_COLOR,
+        )
+        .is_some()
     }
 
     fn is_on_low_hp(&self, number_of_players: usize) -> bool {
