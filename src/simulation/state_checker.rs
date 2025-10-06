@@ -181,13 +181,7 @@ impl StateChecker for WindowObj {
     }
 
     fn is_inventory_opened(&self) -> bool {
-        check_location(
-            self.hwnd,
-            get_inventory_opened_marker(),
-            true,
-            DEBUG_LOCATION_COLOR,
-        )
-        .is_some()
+        check_location(self.hwnd, get_inventory_opened_marker(), true, true).is_some()
     }
 
     fn is_on_low_hp(&self, number_of_players: usize) -> bool {
@@ -313,7 +307,7 @@ fn get_inventory_full_marker() -> Location {
 }
 
 fn get_inventory_opened_marker() -> Location {
-    Location(164, 441, vec![PixelColor(0x48C1EA)])
+    Location(68, 473, vec![PixelColor(0x455D7D), PixelColor(0x45566C)])
 }
 
 fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
