@@ -110,8 +110,8 @@ impl Default for Config {
                     class_config: ClassConfig::new(
                         Class::Warlock,
                         None,
-                        None,
-                        Some(vec![("Engulfing Darkness".to_string(), 57.6)]),
+                        Some(vec!["Engulfing Darkness".to_string()]),
+                        Some(vec![("Engulfing Darkness".to_string(), 78.3)]),
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,
