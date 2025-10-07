@@ -34,20 +34,24 @@ impl SkillTracker {
         }
     }
 
+    pub fn reset_debuffs(&self) {
+        let debuff_map = Arc::clone(&self.debuff_tracker);
+        let mut debuff_map = debuff_map.lock().unwrap();
+        debuff_map.clear();
+    }
+
     pub fn reset(&self) {
         println!("Resetting skill tracker");
         let last_cast_map = Arc::clone(&self.last_cast);
         let buff_map = Arc::clone(&self.buff_tracker);
-        let debuff_map = Arc::clone(&self.debuff_tracker);
         let potion_map = Arc::clone(&self.potion_tracker);
         let mut last_cast_map = last_cast_map.lock().unwrap();
         let mut buff_map = buff_map.lock().unwrap();
-        let mut debuff_map = debuff_map.lock().unwrap();
         let mut potion_map = potion_map.lock().unwrap();
         last_cast_map.clear();
         buff_map.clear();
-        debuff_map.clear();
         potion_map.clear();
+        self.reset_debuffs();
         println!("Skill tracker has been reset");
     }
 

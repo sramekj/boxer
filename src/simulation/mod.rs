@@ -144,6 +144,11 @@ impl SimulationState {
                     // do nothing
                 }
                 _ => {
+                    if self.left_combat(prev_state, state) {
+                        //we should track debuffs only during fight, otherwise it would block possible casts
+                        self.skill_tracker.reset_debuffs();
+                    }
+
                     if state == CharState::AtShrine && self.interactor.interact() {
                         println!("Interacted with a shrine");
                     }
@@ -157,7 +162,11 @@ impl SimulationState {
                             let new_state =
                                 self.state_checker.get_state(self.num_active_characters);
                             //let's break if we go over 10 attempts - we might be hung-up because of unknown loot quality check
-                            if !looted || new_state != CharState::Looting || loot_counter > 10 {
+                            if !looted
+                                || new_state != CharState::Looting
+                                || self.state_checker.is_inventory_full()
+                                || loot_counter > 10
+                            {
                                 println!("Looting ended");
                                 skip_wait = true;
                                 break;
@@ -165,7 +174,7 @@ impl SimulationState {
                         }
                     }
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
-                        if prev_state != CharState::Fighting && state == CharState::Fighting {
+                        if self.entered_combat(prev_state, state) {
                             //wait if we have just started fighting... otherwise the first cast may not go off
                             thread::sleep(Duration::from_millis(500));
                         }
@@ -186,6 +195,14 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
         }
+    }
+
+    fn entered_combat(&self, prev_state: CharState, state: CharState) -> bool {
+        prev_state != CharState::Fighting && state == CharState::Fighting
+    }
+
+    fn left_combat(&self, prev_state: CharState, state: CharState) -> bool {
+        prev_state == CharState::Fighting && state != CharState::Fighting
     }
 
     fn do_rotation(&self, state: CharState, state_check_at: Instant, mut skip_wait: bool) {
