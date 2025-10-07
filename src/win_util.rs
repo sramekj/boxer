@@ -287,6 +287,7 @@ pub fn scan_line(
     x1: i32,
     x2: i32,
     y: i32,
+    debug: bool,
 ) -> windows::core::Result<Vec<PixelColor>> {
     unsafe {
         let hwnd = hwnd_opt.ok_or_else(|| Error::from(ERROR_INVALID_WINDOW_HANDLE))?;
@@ -355,17 +356,28 @@ pub fn scan_line(
             return Err(Error::from(GetLastError()));
         }
 
-        // //DEBUG: write raw bytes to file
-        // if cfg!(debug_assertions) {
-        //     save_bmp_file("test.bmp", width, height, &buffer)?;
-        // }
-
         let px1 = x1.clamp(0, width - 1) as usize;
         let px2 = x2.clamp(0, width - 1) as usize;
         let py = y.clamp(0, height - 1) as usize;
 
         let index_from = py * row_stride + px1 * 4;
         let index_to = py * row_stride + px2 * 4;
+
+        // //DEBUG: write a bmp with line outline
+        if debug {
+            let blue = 0x000000FF;
+            let top_idx_from = index_from - row_stride;
+            let top_idx_to = index_to - row_stride;
+            for idx in (top_idx_from..=top_idx_to).step_by(4) {
+                buffer[idx] = blue;
+            }
+            let bot_idx_from = index_from + row_stride;
+            let bot_idx_to = index_to + row_stride;
+            for idx in (bot_idx_from..=bot_idx_to).step_by(4) {
+                buffer[idx] = blue;
+            }
+            save_bmp_file("test.bmp", width, height, &buffer)?;
+        }
 
         let mut result: Vec<PixelColor> = vec![];
         for idx in (index_from..=index_to).step_by(4) {
@@ -429,7 +441,7 @@ pub fn debug_scanline(hwnd: HWND, len: i32) {
         if !ScreenToClient(hwnd, &mut pt).as_bool() {
             return;
         }
-        match scan_line(Some(hwnd), pt.x - len, pt.x + len, pt.y) {
+        match scan_line(Some(hwnd), pt.x - len, pt.x + len, pt.y, false) {
             Ok(colors) => {
                 print!("Colors: ");
                 for color in colors {

@@ -6,8 +6,8 @@ use colored::Colorize;
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
 
-const DEBUG_RUNE_COLOR: bool = false;
 const DEBUG_LOCATION_COLOR: bool = false;
+const DEBUG_BMP: bool = false;
 const COLOR_DISTANCE_TOLERANCE: u8 = 2;
 
 pub trait StateChecker {
@@ -124,51 +124,25 @@ impl StateChecker for WindowObj {
         state
     }
 
-    // fn get_loot_quality(&self) -> LootQuality {
-    //     let mut quality = LootQuality::Unknown;
-    //     for (loc, q) in get_loot_quality_markers() {
-    //         if let Some(q) = check_location(self.hwnd, loc, q, DEBUG_LOCATION_COLOR) {
-    //             quality = q;
-    //             break;
-    //         }
-    //     }
-    //     if quality == LootQuality::Unknown {
-    //         //debug print color
-    //         _ = get_loot_quality_markers()
-    //             .keys()
-    //             .last()
-    //             .cloned()
-    //             .and_then(|loc| check_location(self.hwnd, loc, LootQuality::Unknown, true));
-    //     }
-    //     println!("Loot quality: {:?}", quality);
-    //     quality
-    // }
-
     fn get_loot_quality(&self) -> LootQuality {
         let mut quality = LootQuality::Unknown;
         for (ll, q) in get_loot_line_locations() {
-            if check_line(self.hwnd, ll, DEBUG_LOCATION_COLOR) {
+            if check_line(self.hwnd, ll, DEBUG_LOCATION_COLOR, DEBUG_BMP) {
                 quality = q;
                 break;
             }
         }
-        if quality == LootQuality::Unknown || quality == LootQuality::Socketed {
+        if quality == LootQuality::Unknown {
             //debug print color
             _ = get_loot_line_locations()
                 .keys()
                 .last()
                 .cloned()
-                .map(|loc| check_line(self.hwnd, loc, true));
+                .map(|loc| check_line(self.hwnd, loc, true, true));
         }
         println!("Loot quality: {:?}", quality);
         quality
     }
-
-    // fn is_rune(&self) -> bool {
-    //     let result = check_line(self.hwnd, get_rune_line_location(), DEBUG_RUNE_COLOR);
-    //     println!("Is rune: {:?}", result);
-    //     result
-    // }
 
     fn is_inventory_full(&self) -> bool {
         let result = check_location(
@@ -205,17 +179,27 @@ impl StateChecker for WindowObj {
     }
 }
 
-fn check_line(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> bool {
+fn check_line(
+    hwnd: Option<HWND>,
+    location: LineLocation,
+    debug_color: bool,
+    debug_bmp: bool,
+) -> bool {
     let _lock = CRITICAL_SECTION.lock().unwrap();
     _ = focus_window(hwnd).as_bool();
-    let result = check_line_no_focus(hwnd, location, debug_color);
+    let result = check_line_no_focus(hwnd, location, debug_color, debug_bmp);
     drop(_lock);
     result
 }
 
-fn check_line_no_focus(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> bool {
+fn check_line_no_focus(
+    hwnd: Option<HWND>,
+    location: LineLocation,
+    debug_color: bool,
+    debug_bmp: bool,
+) -> bool {
     let colors_to_find = location.3;
-    if let Ok(line) = scan_line(hwnd, location.0, location.1, location.2) {
+    if let Ok(line) = scan_line(hwnd, location.0, location.1, location.2, debug_bmp) {
         let found = colors_to_find.iter().any(|color| {
             line.iter()
                 .any(|l| l.is_similar_to(*color, COLOR_DISTANCE_TOLERANCE))
@@ -276,14 +260,10 @@ struct Location(i32, i32, Vec<PixelColor>);
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct LineLocation(i32, i32, i32, Vec<PixelColor>);
 
-fn get_rune_line_location() -> LineLocation {
-    LineLocation(640, 660, 488, vec![PixelColor(0x0091CB)])
-}
-
 fn get_loot_line_locations() -> HashMap<LineLocation, LootQuality> {
     let mut hm: HashMap<LineLocation, LootQuality> = HashMap::new();
-    let x1 = 600;
-    let x2 = 800;
+    let x1 = 585;
+    let x2 = 722;
     let y = 497;
     hm.insert(
         LineLocation(
@@ -432,98 +412,4 @@ fn get_inventory_full_marker() -> Location {
 
 fn get_inventory_opened_marker() -> Location {
     Location(68, 473, vec![PixelColor(0x455D7D), PixelColor(0x45566C)])
-}
-
-fn get_loot_quality_markers() -> HashMap<Location, LootQuality> {
-    let mut hm: HashMap<Location, LootQuality> = HashMap::new();
-    let x = 485;
-    let y = 506;
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0x4D4D74),
-                PixelColor(0x777777),
-                PixelColor(0x767676),
-            ],
-        ),
-        LootQuality::Normal,
-    );
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0x111138),
-                PixelColor(0x1A1A1A),
-                PixelColor(0x100F38),
-            ],
-        ),
-        LootQuality::Socketed,
-    );
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0xFF9A2A),
-                PixelColor(0xA46342),
-                PixelColor(0x8C5440),
-                PixelColor(0xB97728),
-                PixelColor(0xCA7A22),
-                PixelColor(0xF59428),
-                PixelColor(0xE18D2E),
-            ],
-        ),
-        LootQuality::Magic,
-    );
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0x00FFFF),
-                PixelColor(0x00A4CB),
-                PixelColor(0x079696),
-                PixelColor(0x07FDFC),
-            ],
-        ),
-        LootQuality::Rare,
-    );
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0x00C400),
-                PixelColor(0x026B2A),
-                PixelColor(0x007E27),
-                PixelColor(0x01CACA),
-                PixelColor(0x27C91C),
-            ],
-        ),
-        LootQuality::Set,
-    );
-    hm.insert(
-        Location(
-            x,
-            y,
-            vec![
-                PixelColor(0x9F4396),
-                PixelColor(0xF868AD),
-                PixelColor(0xFF82D8),
-                PixelColor(0xF97BAF),
-                PixelColor(0xDB639D),
-                PixelColor(0xF171AE),
-                PixelColor(0xEF69A4),
-            ],
-        ),
-        LootQuality::Epic,
-    );
-    hm.insert(
-        Location(x, y, vec![PixelColor(0x0158BB)]),
-        LootQuality::Legendary,
-    );
-    hm
 }

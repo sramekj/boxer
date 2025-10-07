@@ -7,7 +7,7 @@ use colored::Colorize;
 use std::collections::HashMap;
 use std::string::ToString;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 pub struct SkillTracker {
@@ -20,7 +20,7 @@ pub struct SkillTracker {
 }
 
 const HP_POT_COOLDOWN: f32 = 24.0;
-const HP_POT_KEY: &'static str = "hp-potion";
+const HP_POT_KEY: &str = "hp-potion";
 
 impl SkillTracker {
     pub fn new(shared_state: Arc<Mutex<SharedState>>, class_config: ClassConfig) -> Self {
