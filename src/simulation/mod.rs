@@ -101,10 +101,7 @@ impl SimulationState {
             }
             let state = self.state_checker.get_state(self.num_active_characters);
             if state == CharState::Looting {
-                let quality = self.state_checker.get_loot_quality();
-                if quality == LootQuality::Normal {
-                    _ = self.state_checker.is_rune();
-                }
+                _ = self.state_checker.get_loot_quality();
             }
             thread::sleep(Duration::from_millis(self.sync_interval_ms));
         }
@@ -246,10 +243,6 @@ impl SimulationState {
         if quality == LootQuality::Unknown {
             //could not figure out quality... cannot loot (needs a manual intervention)
             return false;
-        }
-        //we always loot runes
-        if quality == LootQuality::Normal && self.state_checker.is_rune() {
-            return self.interactor.loot();
         }
         //now loot according to the loot filter
         if self

@@ -9,5 +9,6 @@ pub enum LootQuality {
     Set,
     Epic,
     Legendary,
+    Rune,
     Unknown,
 }

@@ -157,7 +157,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Clarity".to_string(),
                         key: SKILL_BUTTON_11,
-                        cast_time: 2.5,
+                        cast_time: 2.75,
                         cooldown: 0.0,
                         buff_duration: Some(720.0),
                         debuff_duration: None,

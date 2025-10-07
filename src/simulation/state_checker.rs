@@ -13,7 +13,6 @@ const COLOR_DISTANCE_TOLERANCE: u8 = 2;
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
-    fn is_rune(&self) -> bool;
     fn is_inventory_full(&self) -> bool;
     fn is_inventory_opened(&self) -> bool;
     fn is_on_low_hp(&self, number_of_players: usize) -> bool;
@@ -30,11 +29,6 @@ impl StateChecker for DebugObj {
         let quality = LootQuality::Epic;
         println!("Loot quality: {:?}", quality);
         quality
-    }
-
-    fn is_rune(&self) -> bool {
-        println!("Is rune: false");
-        false
     }
 
     fn is_inventory_full(&self) -> bool {
@@ -130,31 +124,51 @@ impl StateChecker for WindowObj {
         state
     }
 
+    // fn get_loot_quality(&self) -> LootQuality {
+    //     let mut quality = LootQuality::Unknown;
+    //     for (loc, q) in get_loot_quality_markers() {
+    //         if let Some(q) = check_location(self.hwnd, loc, q, DEBUG_LOCATION_COLOR) {
+    //             quality = q;
+    //             break;
+    //         }
+    //     }
+    //     if quality == LootQuality::Unknown {
+    //         //debug print color
+    //         _ = get_loot_quality_markers()
+    //             .keys()
+    //             .last()
+    //             .cloned()
+    //             .and_then(|loc| check_location(self.hwnd, loc, LootQuality::Unknown, true));
+    //     }
+    //     println!("Loot quality: {:?}", quality);
+    //     quality
+    // }
+
     fn get_loot_quality(&self) -> LootQuality {
         let mut quality = LootQuality::Unknown;
-        for (loc, q) in get_loot_quality_markers() {
-            if let Some(q) = check_location(self.hwnd, loc, q, DEBUG_LOCATION_COLOR) {
+        for (ll, q) in get_loot_line_locations() {
+            if check_line(self.hwnd, ll, DEBUG_LOCATION_COLOR) {
                 quality = q;
                 break;
             }
         }
-        if quality == LootQuality::Unknown {
+        if quality == LootQuality::Unknown || quality == LootQuality::Socketed {
             //debug print color
-            _ = get_loot_quality_markers()
+            _ = get_loot_line_locations()
                 .keys()
                 .last()
                 .cloned()
-                .and_then(|loc| check_location(self.hwnd, loc, LootQuality::Unknown, true));
+                .map(|loc| check_line(self.hwnd, loc, true));
         }
         println!("Loot quality: {:?}", quality);
         quality
     }
 
-    fn is_rune(&self) -> bool {
-        let result = check_line(self.hwnd, get_rune_line_location(), DEBUG_RUNE_COLOR);
-        println!("Is rune: {:?}", result);
-        result
-    }
+    // fn is_rune(&self) -> bool {
+    //     let result = check_line(self.hwnd, get_rune_line_location(), DEBUG_RUNE_COLOR);
+    //     println!("Is rune: {:?}", result);
+    //     result
+    // }
 
     fn is_inventory_full(&self) -> bool {
         let result = check_location(
@@ -202,7 +216,10 @@ fn check_line(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> 
 fn check_line_no_focus(hwnd: Option<HWND>, location: LineLocation, debug_color: bool) -> bool {
     let colors_to_find = location.3;
     if let Ok(line) = scan_line(hwnd, location.0, location.1, location.2) {
-        let found = colors_to_find.iter().any(|color| line.contains(color));
+        let found = colors_to_find.iter().any(|color| {
+            line.iter()
+                .any(|l| l.is_similar_to(*color, COLOR_DISTANCE_TOLERANCE))
+        });
         if !found && debug_color {
             print!("Colors: ");
             for color in line {
@@ -261,6 +278,84 @@ struct LineLocation(i32, i32, i32, Vec<PixelColor>);
 
 fn get_rune_line_location() -> LineLocation {
     LineLocation(640, 660, 488, vec![PixelColor(0x0091CB)])
+}
+
+fn get_loot_line_locations() -> HashMap<LineLocation, LootQuality> {
+    let mut hm: HashMap<LineLocation, LootQuality> = HashMap::new();
+    let x1 = 600;
+    let x2 = 800;
+    let y = 497;
+    hm.insert(
+        LineLocation(
+            x1,
+            x2,
+            490,
+            vec![
+                PixelColor(0xFFFFFF),
+                PixelColor(0xFCFCFC),
+                PixelColor(0xE6E6E6),
+                PixelColor(0xE4E4E4),
+                PixelColor(0xF2F2F2),
+            ],
+        ),
+        LootQuality::Normal,
+    );
+    hm.insert(
+        LineLocation(
+            x1,
+            x2,
+            490,
+            vec![
+                PixelColor(0x706F6F),
+                PixelColor(0x676767),
+                PixelColor(0x686868),
+            ],
+        ),
+        LootQuality::Socketed,
+    );
+    hm.insert(
+        LineLocation(x1, x2, y, vec![PixelColor(0xD07E22)]),
+        LootQuality::Magic,
+    );
+    hm.insert(
+        LineLocation(x1, x2, y, vec![PixelColor(0x00E4E4)]),
+        LootQuality::Rare,
+    );
+    hm.insert(
+        LineLocation(
+            x1,
+            x2,
+            y,
+            vec![
+                PixelColor(0xE35F9E),
+                PixelColor(0xCB558E),
+                PixelColor(0xC05185),
+            ],
+        ),
+        LootQuality::Epic,
+    );
+    hm.insert(
+        LineLocation(x1, x2, y, vec![PixelColor(0x00B200)]),
+        LootQuality::Set,
+    );
+    hm.insert(
+        LineLocation(x1, x2, y, vec![PixelColor(0x0158BB)]),
+        LootQuality::Legendary,
+    );
+    hm.insert(
+        LineLocation(
+            600,
+            800,
+            488,
+            vec![
+                PixelColor(0x0158BB),
+                PixelColor(0x0091CB),
+                PixelColor(0x047099),
+            ],
+        ),
+        LootQuality::Rune,
+    );
+    hm
 }
 
 fn get_town_marker() -> Location {
