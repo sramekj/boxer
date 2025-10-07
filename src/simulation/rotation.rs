@@ -148,7 +148,7 @@ impl Rotations<Class> for Rotation {
                     Skill {
                         name: "Phase Blade".to_string(),
                         key: SKILL_BUTTON_10,
-                        cast_time: 2.0,
+                        cast_time: 2.25,
                         cooldown: 0.0,
                         buff_duration: Some(600.0),
                         debuff_duration: None,
