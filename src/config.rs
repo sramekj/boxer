@@ -65,10 +65,10 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            skill_haste_percent: 18.0,
-            frenzy_duration: 20.0,
-            frenzy_haste_percent: 20.0,
-            bulwark_duration: 10.0,
+            skill_haste_percent: 22.0,
+            frenzy_duration: 23.9,
+            frenzy_haste_percent: 28.0,
+            bulwark_duration: 12.7,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
             start_offset_ms: 100,
@@ -111,7 +111,7 @@ impl Default for Config {
                         Class::Warlock,
                         None,
                         Some(vec!["Engulfing Darkness".to_string()]),
-                        Some(vec![("Engulfing Darkness".to_string(), 78.3)]),
+                        Some(vec![("Engulfing Darkness".to_string(), 85.7)]),
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,
