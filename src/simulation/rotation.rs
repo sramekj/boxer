@@ -11,11 +11,11 @@ pub struct Rotation {
     pub skills: Vec<Skill>,
 }
 
-pub trait Rotations<T> {
-    fn get_rotation(input: T, cfg: &Config) -> Rotation;
+pub trait Rotations {
+    fn get_rotation(input: Class, cfg: &Config) -> Rotation;
 }
 
-impl Rotations<Class> for Rotation {
+impl Rotations for Rotation {
     fn get_rotation(input: Class, cfg: &Config) -> Rotation {
         match input {
             Class::Warrior => Rotation {

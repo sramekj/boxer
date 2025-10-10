@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_0, VK_1, VK_2, VK_3, VK_4, VK_5, VK_6, VK_7, VK_8, VK_9, VK_A, VK_B, VK_D,
     VK_E, VK_F, VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_I, VK_OEM_MINUS, VK_OEM_PLUS, VK_Q, VK_S,

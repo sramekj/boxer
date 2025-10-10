@@ -65,7 +65,7 @@ impl SkillTracker {
         let debuff_map = debuff_map.lock().unwrap();
         if let Some(last_cast) = last_cast_map.get(&skill.name) {
             let diff = now - *last_cast;
-            if diff.as_secs_f32() < skill.get_cooldown(self.class_config.clone()) {
+            if diff.as_secs_f32() < skill.get_cooldown(self.class_config.cd_reductions.as_ref()) {
                 println!(
                     "{}",
                     format!(
@@ -117,7 +117,7 @@ impl SkillTracker {
             Some(last_cast) => {
                 let now = Instant::now();
                 let diff = now - *last_cast;
-                diff.as_secs_f32() < skill.get_cooldown(self.class_config.clone())
+                diff.as_secs_f32() < skill.get_cooldown(self.class_config.cd_reductions.as_ref())
             }
         }
     }

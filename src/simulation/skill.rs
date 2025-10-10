@@ -1,4 +1,3 @@
-use crate::configuration::class_config::ClassConfig;
 use crate::configuration::config::Class;
 use crate::simulation::char_state::CharState;
 use crate::simulation::keys::Key;
@@ -23,8 +22,8 @@ impl Skill {
         GCD * self.get_haste_coef(shared_state, class)
     }
 
-    pub fn get_cooldown(&self, class_config: ClassConfig) -> f32 {
-        let reduction = if let Some(reductions) = class_config.cd_reductions {
+    pub fn get_cooldown(&self, reductions: Option<&Vec<(String, f32)>>) -> f32 {
+        let reduction = if let Some(reductions) = reductions {
             reductions
                 .iter()
                 .find(|(k, _)| k == &self.name)
@@ -197,7 +196,10 @@ mod tests {
             AutoAttack::Primary,
         );
 
-        assert(skill.get_cooldown(class_config), 22.95);
+        assert(
+            skill.get_cooldown(class_config.cd_reductions.as_ref()),
+            22.95,
+        );
 
         class_config = ClassConfig::new(
             Class::Warlock,
@@ -208,7 +210,10 @@ mod tests {
             AutoAttack::Primary,
         );
 
-        assert(skill.get_cooldown(class_config), 45.0);
+        assert(
+            skill.get_cooldown(class_config.cd_reductions.as_ref()),
+            45.0,
+        );
     }
 
     fn assert(a: f32, b: f32) {
