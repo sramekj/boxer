@@ -1,4 +1,4 @@
-use crate::config::Class;
+use crate::configuration::config::Class;
 use crate::simulation::loot::LootQuality;
 use serde::{Deserialize, Serialize};
 

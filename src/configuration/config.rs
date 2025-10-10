@@ -1,7 +1,5 @@
-pub mod class_config;
-mod hex_hwnd;
-
-use crate::config::class_config::{AutoAttack, ClassConfig};
+use crate::configuration::class_config::{AutoAttack, ClassConfig};
+use crate::configuration::hex_hwnd;
 use crate::simulation::loot::LootQuality;
 use clap::Parser;
 use serde::{Deserialize, Serialize};

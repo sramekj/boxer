@@ -1,6 +1,6 @@
-use crate::config::Class;
-use crate::config::class_config::ClassConfig;
-use crate::simulation::CharState;
+use crate::configuration::class_config::ClassConfig;
+use crate::configuration::config::Class;
+use crate::simulation::char_state::CharState;
 use crate::simulation::keys::Key;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill_type::SkillType;
@@ -68,8 +68,8 @@ impl Skill {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::Class;
-    use crate::config::class_config::{AutoAttack, ClassConfig};
+    use crate::configuration::class_config::{AutoAttack, ClassConfig};
+    use crate::configuration::config::Class;
     use crate::simulation::keys::{SKILL_BUTTON_1, SKILL_BUTTON_4};
     use crate::simulation::shared_state::SharedState;
     use crate::simulation::skill::Skill;

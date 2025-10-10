@@ -1,4 +1,4 @@
-use crate::config::{Class, Config};
+use crate::configuration::config::{Class, Config};
 use crate::simulation::keys::{
     SKILL_BUTTON_1, SKILL_BUTTON_2, SKILL_BUTTON_3, SKILL_BUTTON_4, SKILL_BUTTON_5, SKILL_BUTTON_9,
     SKILL_BUTTON_10, SKILL_BUTTON_11, SKILL_BUTTON_12,

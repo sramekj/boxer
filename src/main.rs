@@ -1,11 +1,12 @@
-pub mod config;
+mod configuration;
 mod simulation;
 mod win_util;
 
-use crate::config::{Args, load_config};
-use crate::simulation::rotation::Rotations;
+use crate::configuration::config::{Args, load_config};
+use crate::simulation::char_state::CharState;
+use crate::simulation::rotation::{Rotation, Rotations};
 use crate::simulation::shared_state::SharedState;
-use crate::simulation::{CharState, DebugObj, Rotation, SimulationState, WindowObj};
+use crate::simulation::simulation_state::{DebugObj, SimulationState, WindowObj};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, debug_scanline, enum_windows, find_window_by_title,
     make_dpi_aware, set_window,

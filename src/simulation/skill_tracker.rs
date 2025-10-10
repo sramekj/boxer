@@ -1,5 +1,5 @@
-use crate::config::class_config::ClassConfig;
-use crate::simulation::CharState;
+use crate::configuration::class_config::ClassConfig;
+use crate::simulation::char_state::CharState;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
