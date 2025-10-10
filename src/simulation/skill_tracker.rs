@@ -1,4 +1,3 @@
-use crate::configuration::class_config::ClassConfig;
 use crate::simulation::char_state::CharState;
 use crate::simulation::shared_state::SharedState;
 use crate::simulation::skill::Skill;
@@ -16,21 +15,19 @@ pub struct SkillTracker {
     debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     potion_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     shared_state: Arc<Mutex<SharedState>>,
-    class_config: ClassConfig,
 }
 
 const HP_POT_COOLDOWN: f32 = 24.0;
 const HP_POT_KEY: &str = "hp-potion";
 
 impl SkillTracker {
-    pub fn new(shared_state: Arc<Mutex<SharedState>>, class_config: ClassConfig) -> Self {
+    pub fn new(shared_state: Arc<Mutex<SharedState>>) -> Self {
         SkillTracker {
             last_cast: Arc::new(Mutex::new(HashMap::new())),
             buff_tracker: Arc::new(Mutex::new(HashMap::new())),
             debuff_tracker: Arc::new(Mutex::new(HashMap::new())),
             potion_tracker: Arc::new(Mutex::new(HashMap::new())),
             shared_state,
-            class_config,
         }
     }
 
@@ -55,7 +52,7 @@ impl SkillTracker {
         println!("Skill tracker has been reset");
     }
 
-    pub fn track_cast(&self, skill: &Skill) {
+    pub fn track_cast(&self, skill: &Skill, reductions: Option<&Vec<(String, f32)>>) {
         let now = Instant::now();
         let last_cast_map = Arc::clone(&self.last_cast);
         let buff_map = Arc::clone(&self.buff_tracker);
@@ -65,7 +62,7 @@ impl SkillTracker {
         let debuff_map = debuff_map.lock().unwrap();
         if let Some(last_cast) = last_cast_map.get(&skill.name) {
             let diff = now - *last_cast;
-            if diff.as_secs_f32() < skill.get_cooldown(self.class_config.cd_reductions.as_ref()) {
+            if diff.as_secs_f32() < skill.get_cooldown(reductions) {
                 println!(
                     "{}",
                     format!(
@@ -109,7 +106,7 @@ impl SkillTracker {
         }
     }
 
-    pub fn is_on_cooldown(&self, skill: &Skill) -> bool {
+    pub fn is_on_cooldown(&self, skill: &Skill, reductions: Option<&Vec<(String, f32)>>) -> bool {
         let map = Arc::clone(&self.last_cast);
         let map = map.lock().unwrap();
         match map.get(&skill.name) {
@@ -117,13 +114,18 @@ impl SkillTracker {
             Some(last_cast) => {
                 let now = Instant::now();
                 let diff = now - *last_cast;
-                diff.as_secs_f32() < skill.get_cooldown(self.class_config.cd_reductions.as_ref())
+                diff.as_secs_f32() < skill.get_cooldown(reductions)
             }
         }
     }
 
-    pub fn can_cast(&self, skill: &Skill, state: CharState) -> bool {
-        let is_on_cooldown = self.is_on_cooldown(skill);
+    pub fn can_cast(
+        &self,
+        skill: &Skill,
+        reductions: Option<&Vec<(String, f32)>>,
+        state: CharState,
+    ) -> bool {
+        let is_on_cooldown = self.is_on_cooldown(skill, reductions);
         let can_cast = skill.can_cast(state);
         let result = !is_on_cooldown && can_cast;
         println!(
@@ -148,7 +150,12 @@ impl SkillTracker {
         result
     }
 
-    pub fn should_cast(&self, skill: &Skill, state: CharState) -> bool {
+    pub fn should_cast(
+        &self,
+        skill: &Skill,
+        reductions: Option<&Vec<(String, f32)>>,
+        state: CharState,
+    ) -> bool {
         let should_attack = match skill.skill_type {
             SkillType::Buff => {
                 let result = !self.has_buff_applied(skill);
@@ -185,7 +192,7 @@ impl SkillTracker {
             }
             SkillType::Attack => true,
         };
-        self.can_cast(skill, state) && should_attack
+        self.can_cast(skill, reductions, state) && should_attack
     }
 
     // we want to reapply buffs/debuffs before they drop down

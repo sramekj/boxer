@@ -69,7 +69,7 @@ impl SimulationState {
             num_active_characters,
             window_config: window_config.clone(),
             rotation,
-            skill_tracker: SkillTracker::new(shared_state.clone(), window_config.class_config),
+            skill_tracker: SkillTracker::new(shared_state.clone()),
             interactor: skill_caster,
             state_checker,
             shared_state,
@@ -213,7 +213,11 @@ impl SimulationState {
             }
 
             // if we can cast (or buff/debuff is down)
-            if self.skill_tracker.should_cast(&skill, updated_state) {
+            if self.skill_tracker.should_cast(
+                &skill,
+                self.window_config.class_config.cd_reductions.as_ref(),
+                updated_state,
+            ) {
                 if let Some(cast_all_skills) = &self.window_config.class_config.cast_all_skills
                     && cast_all_skills.contains(&skill.name)
                     && self.num_active_characters > 1
@@ -228,7 +232,10 @@ impl SimulationState {
                         self.cast(&skill);
                         //track only self-cast the cooldown
                         if player_index == 0 {
-                            self.skill_tracker.track_cast(&skill);
+                            self.skill_tracker.track_cast(
+                                &skill,
+                                self.window_config.class_config.cd_reductions.as_ref(),
+                            );
                         }
                     }
                     // re-target himself
@@ -237,7 +244,10 @@ impl SimulationState {
                     // try to cast a single spell
                     self.cast(&skill);
                     // and track the cooldown
-                    self.skill_tracker.track_cast(&skill);
+                    self.skill_tracker.track_cast(
+                        &skill,
+                        self.window_config.class_config.cd_reductions.as_ref(),
+                    );
                 }
                 skip_wait = true;
             }
