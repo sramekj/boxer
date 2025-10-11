@@ -1,5 +1,5 @@
 use crate::simulation::char_state::CharState;
-use crate::simulation::shared_state::SharedState;
+use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
 use colored::Colorize;
@@ -14,14 +14,14 @@ pub struct SkillTracker {
     buff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     debuff_tracker: Arc<Mutex<HashMap<String, Instant>>>,
     potion_tracker: Arc<Mutex<HashMap<String, Instant>>>,
-    shared_state: Arc<Mutex<SharedState>>,
+    shared_state: Arc<SharedStateHandle>,
 }
 
 const HP_POT_COOLDOWN: f32 = 24.0;
 const HP_POT_KEY: &str = "hp-potion";
 
 impl SkillTracker {
-    pub fn new(shared_state: Arc<Mutex<SharedState>>) -> Self {
+    pub fn new(shared_state: Arc<SharedStateHandle>) -> Self {
         SkillTracker {
             last_cast: Arc::new(Mutex::new(HashMap::new())),
             buff_tracker: Arc::new(Mutex::new(HashMap::new())),
@@ -89,13 +89,9 @@ impl SkillTracker {
         match skill.skill_type {
             SkillType::Buff => {
                 if skill.name == "Augmentation" {
-                    let state = self.shared_state.clone();
-                    let mut state = state.lock().unwrap();
-                    state.set_skill_haste(true);
+                    self.shared_state.set_skill_haste_applied(true);
                 } else if skill.name == "Frenzy" {
-                    let state = self.shared_state.clone();
-                    let mut state = state.lock().unwrap();
-                    state.set_frenzy(true);
+                    self.shared_state.set_frenzy_applied(true);
                 }
                 buff_map.insert(skill.name.clone(), now);
             }
@@ -161,13 +157,9 @@ impl SkillTracker {
                 let result = !self.has_buff_applied(skill);
                 if result {
                     if skill.name == "Augmentation" {
-                        let state = self.shared_state.clone();
-                        let mut state = state.lock().unwrap();
-                        state.set_skill_haste(false);
+                        self.shared_state.set_skill_haste_applied(false);
                     } else if skill.name == "Frenzy" {
-                        let state = self.shared_state.clone();
-                        let mut state = state.lock().unwrap();
-                        state.set_frenzy(false);
+                        self.shared_state.set_frenzy_applied(false);
                     }
                     println!("{}", format!("Buff {} expired", skill.name).yellow());
                 } else {

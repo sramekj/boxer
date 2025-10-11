@@ -1,9 +1,9 @@
 use crate::configuration::config::Class;
 use crate::simulation::char_state::CharState;
 use crate::simulation::keys::Key;
-use crate::simulation::shared_state::SharedState;
+use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill_type::SkillType;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Skill {
@@ -18,7 +18,7 @@ pub struct Skill {
 const GCD: f32 = 2.5;
 
 impl Skill {
-    pub fn get_gcd(&self, shared_state: Arc<Mutex<SharedState>>, class: Class) -> f32 {
+    pub fn get_gcd(&self, shared_state: Arc<SharedStateHandle>, class: Class) -> f32 {
         GCD * self.get_haste_coef(shared_state, class)
     }
 
@@ -42,7 +42,7 @@ impl Skill {
         }
     }
 
-    pub fn cast_time(&self, shared_state: Arc<Mutex<SharedState>>, class: Class) -> f32 {
+    pub fn cast_time(&self, shared_state: Arc<SharedStateHandle>, class: Class) -> f32 {
         if self.cast_time == 0.0 {
             0.0
         } else {
@@ -50,16 +50,14 @@ impl Skill {
         }
     }
 
-    fn get_haste_coef(&self, shared_state: Arc<Mutex<SharedState>>, class: Class) -> f32 {
-        let state = Arc::clone(&shared_state);
-        let state = state.lock().unwrap();
+    fn get_haste_coef(&self, shared_state: Arc<SharedStateHandle>, class: Class) -> f32 {
         let mut coef = 1.0f32;
-        if state.skill_haste_applied() {
-            coef = coef * (100.0 - state.get_skill_haste_percent()) / 100.0;
+        if shared_state.get_skill_haste_applied() {
+            coef = coef * (100.0 - shared_state.get_skill_haste_percent()) / 100.0;
         }
         // frenzy is Warrior only self-buff
-        if state.frenzy_applied() && class == Class::Warrior {
-            coef = coef * (100.0 - state.get_frenzy_percent()) / 100.0;
+        if shared_state.get_frenzy_applied() && class == Class::Warrior {
+            coef = coef * (100.0 - shared_state.get_frenzy_percent()) / 100.0;
         }
         coef
     }
@@ -70,10 +68,10 @@ mod tests {
     use crate::configuration::class_config::{AutoAttack, ClassConfig};
     use crate::configuration::config::Class;
     use crate::simulation::keys::{SKILL_BUTTON_1, SKILL_BUTTON_4};
-    use crate::simulation::shared_state::SharedState;
+    use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::skill::Skill;
     use crate::simulation::skill_type::SkillType;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     #[test]
     fn test_gcd_no_skill_haste() {
@@ -84,6 +82,7 @@ mod tests {
         assert(coef, 1.0);
         assert(cast_time, 0.0);
         assert(gcd, 2.5);
+        shared_state.stop();
     }
 
     #[test]
@@ -95,6 +94,7 @@ mod tests {
         assert(coef, 0.9);
         assert(cast_time, 0.0);
         assert(gcd, 2.25);
+        shared_state.stop();
     }
 
     #[test]
@@ -106,6 +106,7 @@ mod tests {
         assert(coef, 0.9);
         assert(cast_time, 0.0);
         assert(gcd, 2.25);
+        shared_state.stop();
     }
 
     #[test]
@@ -117,6 +118,7 @@ mod tests {
         assert(coef, 0.72);
         assert(cast_time, 0.0);
         assert(gcd, 1.8);
+        shared_state.stop();
     }
 
     #[test]
@@ -128,6 +130,7 @@ mod tests {
         assert(coef, 0.8);
         assert(cast_time, 0.0);
         assert(gcd, 2.0);
+        shared_state.stop();
     }
 
     #[test]
@@ -137,6 +140,7 @@ mod tests {
         let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
         assert(coef, 1.0);
         assert(cast_time, 2.5);
+        shared_state.stop();
     }
 
     #[test]
@@ -146,6 +150,7 @@ mod tests {
         let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
         assert(coef, 0.9);
         assert(cast_time, 2.25);
+        shared_state.stop();
     }
 
     #[test]
@@ -155,6 +160,7 @@ mod tests {
         let cast_time = skill.cast_time(shared_state.clone(), Class::Enchanter);
         assert(coef, 0.9);
         assert(cast_time, 2.25);
+        shared_state.stop();
     }
 
     #[test]
@@ -164,6 +170,7 @@ mod tests {
         let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
         assert(coef, 0.72);
         assert(cast_time, 1.8);
+        shared_state.stop();
     }
 
     #[test]
@@ -173,6 +180,7 @@ mod tests {
         let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
         assert(coef, 0.8);
         assert(cast_time, 2.0);
+        shared_state.stop();
     }
 
     #[test]
@@ -225,7 +233,7 @@ mod tests {
         frenzy_haste: f32,
         enable_haste: bool,
         enable_frenzy: bool,
-    ) -> (Skill, Arc<Mutex<SharedState>>) {
+    ) -> (Skill, Arc<SharedStateHandle>) {
         let skill = Skill {
             name: "Rupture".to_string(),
             key: SKILL_BUTTON_4,
@@ -235,11 +243,10 @@ mod tests {
             debuff_duration: Some(18.0),
             skill_type: SkillType::Debuff,
         };
-        let mut state = SharedState::new(skill_haste, frenzy_haste);
-        state.set_skill_haste(enable_haste);
-        state.set_frenzy(enable_frenzy);
-        let shared_state = Arc::new(Mutex::new(state));
-        (skill, shared_state)
+        let state = SharedStateHandle::new(skill_haste, frenzy_haste);
+        state.set_skill_haste_applied(enable_haste);
+        state.set_frenzy_applied(enable_frenzy);
+        (skill, Arc::new(state))
     }
 
     fn get_long_cast_skill(
@@ -247,7 +254,7 @@ mod tests {
         frenzy_haste: f32,
         enable_haste: bool,
         enable_frenzy: bool,
-    ) -> (Skill, Arc<Mutex<SharedState>>) {
+    ) -> (Skill, Arc<SharedStateHandle>) {
         let skill = Skill {
             name: "Mind Blitz".to_string(),
             key: SKILL_BUTTON_4,
@@ -257,10 +264,9 @@ mod tests {
             debuff_duration: None,
             skill_type: SkillType::Attack,
         };
-        let mut state = SharedState::new(skill_haste, frenzy_haste);
-        state.set_skill_haste(enable_haste);
-        state.set_frenzy(enable_frenzy);
-        let shared_state = Arc::new(Mutex::new(state));
-        (skill, shared_state)
+        let state = SharedStateHandle::new(skill_haste, frenzy_haste);
+        state.set_skill_haste_applied(enable_haste);
+        state.set_frenzy_applied(enable_frenzy);
+        (skill, Arc::new(state))
     }
 }

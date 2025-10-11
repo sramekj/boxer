@@ -5,14 +5,14 @@ mod win_util;
 use crate::configuration::config::{Args, load_config};
 use crate::simulation::char_state::CharState;
 use crate::simulation::rotation::{Rotation, Rotations};
-use crate::simulation::shared_state::SharedState;
+use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::simulation_state::{DebugObj, SimulationState, WindowObj};
 use crate::win_util::{
     debug_mouse, debug_mouse_color, debug_scanline, enum_windows, find_window_by_title,
     make_dpi_aware, set_window,
 };
 use clap::Parser;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -94,10 +94,10 @@ fn main() -> windows::core::Result<()> {
 
     let mut handles: Vec<JoinHandle<()>> = vec![];
     let mut simulations: Vec<Arc<SimulationState>> = vec![];
-    let shared_state = Arc::new(Mutex::new(SharedState::new(
+    let shared_state = Arc::new(SharedStateHandle::new(
         cfg.skill_haste_percent,
         cfg.frenzy_haste_percent,
-    )));
+    ));
 
     let active_windows = cfg
         .windows
@@ -204,6 +204,8 @@ fn main() -> windows::core::Result<()> {
     for handle in handles {
         handle.join().expect("Thread panicked");
     }
+
+    shared_state.stop();
 
     Ok(())
 }

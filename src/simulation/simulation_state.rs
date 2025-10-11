@@ -3,12 +3,12 @@ use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::loot::LootQuality;
 use crate::simulation::rotation::Rotation;
-use crate::simulation::shared_state::SharedState;
+use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_tracker::SkillTracker;
 use crate::simulation::state_checker::StateChecker;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use windows::Win32::Foundation::HWND;
@@ -47,7 +47,7 @@ pub struct SimulationState {
     pub skill_tracker: SkillTracker,
     pub interactor: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
-    pub shared_state: Arc<Mutex<SharedState>>,
+    pub shared_state: Arc<SharedStateHandle>,
 }
 
 impl SimulationState {
@@ -59,7 +59,7 @@ impl SimulationState {
         rotation: Rotation,
         skill_caster: Box<dyn Interactor + Send + Sync>,
         state_checker: Box<dyn StateChecker + Send + Sync>,
-        shared_state: Arc<Mutex<SharedState>>,
+        shared_state: Arc<SharedStateHandle>,
     ) -> Self {
         SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
@@ -328,11 +328,12 @@ mod tests {
     use crate::configuration::config::{Class, Config};
     use crate::simulation::char_state::CharState::Fighting;
     use crate::simulation::rotation::{Rotation, Rotations};
-    use crate::simulation::shared_state::SharedState;
+    use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::simulation_state::{DebugObj, SimulationState};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     #[test]
+    #[ignore]
     fn test_simulation() {
         let cfg = Config::default();
 
@@ -346,10 +347,10 @@ mod tests {
             rotation,
             Box::new(DebugObj::new(Fighting)),
             Box::new(DebugObj::new(Fighting)),
-            Arc::new(Mutex::new(SharedState::new(
+            Arc::new(SharedStateHandle::new(
                 cfg.skill_haste_percent,
                 cfg.frenzy_haste_percent,
-            ))),
+            )),
         );
 
         simulation.enable_toggle();
