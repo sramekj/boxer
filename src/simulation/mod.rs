@@ -1,4 +1,5 @@
 pub mod char_state;
+pub mod global_lock;
 pub mod interactor;
 pub mod keys;
 pub mod loot;

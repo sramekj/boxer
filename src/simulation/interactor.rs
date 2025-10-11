@@ -1,8 +1,8 @@
 use crate::configuration::class_config::AutoAttack;
+use crate::simulation::global_lock::CRITICAL_SECTION;
 use crate::simulation::keys::{
     AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, INVENTORY, Key, LOOT_INTERACT,
 };
-use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::simulation::skill::Skill;
 use crate::win_util::{focus_window, send_key_vk};

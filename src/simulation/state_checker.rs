@@ -1,6 +1,6 @@
 use crate::simulation::char_state::CharState;
+use crate::simulation::global_lock::CRITICAL_SECTION;
 use crate::simulation::loot::LootQuality;
-use crate::simulation::shared_state::CRITICAL_SECTION;
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::win_util::{PixelColor, focus_window, get_pixel_color_local, scan_line};
 use colored::Colorize;
