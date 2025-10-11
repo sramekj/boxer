@@ -5,7 +5,7 @@ use crate::simulation::loot::LootQuality;
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
-use crate::simulation::skill_tracker::SkillTracker;
+use crate::simulation::skill_tracker::SkillTrackerHandle;
 use crate::simulation::state_checker::StateChecker;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,7 +44,7 @@ pub struct SimulationState {
     pub num_active_characters: usize,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
-    pub skill_tracker: SkillTracker,
+    pub skill_tracker: SkillTrackerHandle,
     pub interactor: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
     pub shared_state: Arc<SharedStateHandle>,
@@ -69,7 +69,7 @@ impl SimulationState {
             num_active_characters,
             window_config: window_config.clone(),
             rotation,
-            skill_tracker: SkillTracker::new(shared_state.clone()),
+            skill_tracker: SkillTrackerHandle::new(shared_state.clone()),
             interactor: skill_caster,
             state_checker,
             shared_state,
@@ -79,6 +79,7 @@ impl SimulationState {
     pub fn is_master(&self) -> bool {
         self.window_config.master
     }
+
     pub fn debug_checker(&self) {
         self.is_running.store(true, Ordering::SeqCst);
         let is_running = self.is_running.clone();

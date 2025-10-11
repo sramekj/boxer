@@ -1,16 +1,20 @@
+use crate::simulation::shared_state::SharedStateMessage::*;
+use crate::simulation::type_of;
+use colored::Colorize;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 #[derive(Debug)]
+#[non_exhaustive]
 enum SharedStateMessage {
-    SetSkillHasteApplied(bool),
-    SetFrenzyApplied(bool),
+    SetSkillHasteApplied(bool, Sender<()>),
+    SetFrenzyApplied(bool, Sender<()>),
     GetSkillHasteApplied(Sender<bool>),
     GetFrenzyApplied(Sender<bool>),
     GetSkillHastePercent(Sender<f32>),
     GetFrenzyPercent(Sender<f32>),
-    Stop,
+    Stop(Sender<()>),
 }
 
 #[derive(Debug)]
@@ -39,26 +43,31 @@ impl SharedStateActor {
 
     fn run(mut self) {
         while let Ok(msg) = self.receiver.recv() {
+            //println!("Received message: {:?}", type_of(&msg));
             match msg {
-                SharedStateMessage::SetSkillHasteApplied(bool) => {
+                SetSkillHasteApplied(bool, sender) => {
                     self.skill_haste_buff_applied = bool;
+                    let _ = sender.send(());
                 }
-                SharedStateMessage::SetFrenzyApplied(bool) => {
+                SetFrenzyApplied(bool, sender) => {
                     self.frenzy_buff_applied = bool;
+                    let _ = sender.send(());
                 }
-                SharedStateMessage::GetSkillHasteApplied(sender) => {
+                GetSkillHasteApplied(sender) => {
                     let _ = sender.send(self.skill_haste_buff_applied);
                 }
-                SharedStateMessage::GetFrenzyApplied(sender) => {
+                GetFrenzyApplied(sender) => {
                     let _ = sender.send(self.frenzy_buff_applied);
                 }
-                SharedStateMessage::GetSkillHastePercent(sender) => {
+                GetSkillHastePercent(sender) => {
                     let _ = sender.send(self.skill_haste_percent);
                 }
-                SharedStateMessage::GetFrenzyPercent(sender) => {
+                GetFrenzyPercent(sender) => {
                     let _ = sender.send(self.frenzy_percent);
                 }
-                SharedStateMessage::Stop => {
+                Stop(sender) => {
+                    print!("Shutting down {}", type_of(&self));
+                    let _ = sender.send(());
                     break;
                 }
             }
@@ -75,52 +84,49 @@ impl SharedStateHandle {
     pub fn new(skill_haste_percent: f32, frenzy_percent: f32) -> Self {
         let (tx, rx) = mpsc::channel();
         let actor = SharedStateActor::new(skill_haste_percent, frenzy_percent, rx);
-        thread::spawn(move || actor.run());
+        print!("Starting {}", type_of(&actor));
+        thread::spawn(move || {
+            if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| actor.run())) {
+                eprintln!("{}", format!("Actor panicked: {:?}", e).red());
+            }
+        });
         Self { sender: tx }
     }
 
+    fn ask<T>(&self, msg: impl FnOnce(Sender<T>) -> SharedStateMessage) -> T {
+        let (tx, rx) = mpsc::channel();
+        let _ = self.sender.send(msg(tx));
+        rx.recv()
+            .expect("Actor thread died or failed to send reply")
+    }
+
     pub fn set_skill_haste_applied(&self, state: bool) {
-        let _ = self
-            .sender
-            .send(SharedStateMessage::SetSkillHasteApplied(state));
+        self.ask(|tx| SetSkillHasteApplied(state, tx));
     }
 
     pub fn set_frenzy_applied(&self, state: bool) {
-        let _ = self
-            .sender
-            .send(SharedStateMessage::SetFrenzyApplied(state));
+        self.ask(|tx| SetFrenzyApplied(state, tx));
     }
 
     pub fn get_skill_haste_applied(&self) -> bool {
-        let (tx, rx) = mpsc::channel();
-        let _ = self
-            .sender
-            .send(SharedStateMessage::GetSkillHasteApplied(tx));
-        rx.recv().unwrap()
+        self.ask(GetSkillHasteApplied)
     }
 
     pub fn get_frenzy_applied(&self) -> bool {
-        let (tx, rx) = mpsc::channel();
-        let _ = self.sender.send(SharedStateMessage::GetFrenzyApplied(tx));
-        rx.recv().unwrap()
+        self.ask(GetFrenzyApplied)
     }
 
     pub fn get_skill_haste_percent(&self) -> f32 {
-        let (tx, rx) = mpsc::channel();
-        let _ = self
-            .sender
-            .send(SharedStateMessage::GetSkillHastePercent(tx));
-        rx.recv().unwrap()
+        self.ask(GetSkillHastePercent)
     }
 
     pub fn get_frenzy_percent(&self) -> f32 {
-        let (tx, rx) = mpsc::channel();
-        let _ = self.sender.send(SharedStateMessage::GetFrenzyPercent(tx));
-        rx.recv().unwrap()
+        self.ask(GetFrenzyPercent)
     }
 
     pub fn stop(&self) {
-        let _ = self.sender.send(SharedStateMessage::Stop);
+        let (tx, _) = mpsc::channel();
+        let _ = self.sender.send(Stop(tx));
     }
 }
 

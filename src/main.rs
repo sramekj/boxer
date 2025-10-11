@@ -12,6 +12,7 @@ use crate::win_util::{
     make_dpi_aware, set_window,
 };
 use clap::Parser;
+use colored::Colorize;
 use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
@@ -28,6 +29,10 @@ use windows::{
 };
 
 fn main() -> windows::core::Result<()> {
+    std::panic::set_hook(Box::new(|panic_info| {
+        eprintln!("{}", format!("Panic occurred: {:?}", panic_info).red());
+    }));
+
     let args = Args::parse();
     if args.debug {
         println!("Window HWND listing:");

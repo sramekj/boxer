@@ -1,3 +1,5 @@
+use std::any::type_name;
+
 pub mod char_state;
 pub mod global_lock;
 pub mod interactor;
@@ -10,3 +12,7 @@ pub mod skill;
 pub mod skill_tracker;
 pub mod skill_type;
 pub mod state_checker;
+
+pub fn type_of<T>(_: &T) -> &'static str {
+    type_name::<T>()
+}
