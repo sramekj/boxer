@@ -123,3 +123,25 @@ impl SharedStateHandle {
         let _ = self.sender.send(SharedStateMessage::Stop);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::simulation::shared_state::SharedStateHandle;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_shared_state_is_singleton() {
+        let state = Arc::new(SharedStateHandle::new(1.0, 1.0));
+        let s1 = state.clone();
+        let s2 = state.clone();
+
+        s1.set_skill_haste_applied(true);
+        assert!(s2.get_skill_haste_applied());
+
+        s1.set_skill_haste_applied(false);
+        assert!(!s2.get_skill_haste_applied());
+
+        s1.stop();
+        s2.stop();
+    }
+}
