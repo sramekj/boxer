@@ -288,7 +288,7 @@ impl SkillTrackerHandle {
     pub fn new(shared_state_handle: Arc<SharedStateHandle>) -> Self {
         let (tx, rx) = mpsc::channel();
         let actor = SkillTrackerActor::new(shared_state_handle, rx);
-        print!("Starting {}", type_of(&actor));
+        println!("Starting {}", type_of(&actor));
         thread::spawn(move || {
             if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| actor.run())) {
                 eprintln!("{}", format!("Actor panicked: {:?}", e).red());

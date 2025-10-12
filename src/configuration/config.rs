@@ -63,10 +63,10 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            skill_haste_percent: 22.0,
-            frenzy_duration: 23.9,
-            frenzy_haste_percent: 28.0,
-            bulwark_duration: 12.7,
+            skill_haste_percent: 39.0,
+            frenzy_duration: 39.5,
+            frenzy_haste_percent: 41.9,
+            bulwark_duration: 16.3,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
             start_offset_ms: 100,
@@ -82,7 +82,7 @@ impl Default for Config {
                     master: false,
                     class_config: ClassConfig::new(
                         Class::Enchanter,
-                        Some(vec!["Augmentation".to_string(), "Clarity".to_string()]),
+                        Some(vec!["Clarity".to_string()]),
                         None,
                         None,
                         vec![
@@ -109,7 +109,7 @@ impl Default for Config {
                         Class::Warlock,
                         None,
                         Some(vec!["Engulfing Darkness".to_string()]),
-                        Some(vec![("Engulfing Darkness".to_string(), 85.7)]),
+                        Some(vec![("Engulfing Darkness".to_string(), 87.9)]),
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,

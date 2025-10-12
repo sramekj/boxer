@@ -84,7 +84,7 @@ impl SharedStateHandle {
     pub fn new(skill_haste_percent: f32, frenzy_percent: f32) -> Self {
         let (tx, rx) = mpsc::channel();
         let actor = SharedStateActor::new(skill_haste_percent, frenzy_percent, rx);
-        print!("Starting {}", type_of(&actor));
+        println!("Starting {}", type_of(&actor));
         thread::spawn(move || {
             if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| actor.run())) {
                 eprintln!("{}", format!("Actor panicked: {:?}", e).red());
