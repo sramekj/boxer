@@ -23,14 +23,7 @@ impl Skill {
     }
 
     pub fn get_cooldown(&self, reductions: Option<&Vec<(String, f32)>>) -> f32 {
-        let reduction = if let Some(reductions) = reductions {
-            reductions
-                .iter()
-                .find(|(k, _)| k == &self.name)
-                .map_or_else(|| 1.0, |(_, v)| (100.0 - *v) / 100.0)
-        } else {
-            1.0
-        };
+        let reduction = self.calculate_reduction_coef(reductions);
         self.cooldown * reduction
     }
 
@@ -42,11 +35,28 @@ impl Skill {
         }
     }
 
-    pub fn cast_time(&self, shared_state: Arc<SharedStateHandle>, class: Class) -> f32 {
+    pub fn cast_time(
+        &self,
+        shared_state: Arc<SharedStateHandle>,
+        class: Class,
+        reductions: Option<&Vec<(String, f32)>>,
+    ) -> f32 {
+        let reduction = self.calculate_reduction_coef(reductions);
         if self.cast_time == 0.0 {
             0.0
         } else {
-            self.cast_time * self.get_haste_coef(shared_state, class)
+            self.cast_time * reduction * self.get_haste_coef(shared_state, class)
+        }
+    }
+
+    fn calculate_reduction_coef(&self, reductions: Option<&Vec<(String, f32)>>) -> f32 {
+        if let Some(reductions) = reductions {
+            reductions
+                .iter()
+                .find(|(k, _)| k == &self.name)
+                .map_or_else(|| 1.0, |(_, v)| (100.0 - *v) / 100.0)
+        } else {
+            1.0
         }
     }
 
@@ -77,7 +87,7 @@ mod tests {
     fn test_gcd_no_skill_haste() {
         let (skill, shared_state) = get_gcd_skill(10f32, 20f32, false, false);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         let gcd = skill.get_gcd(shared_state.clone(), Class::Warrior);
         assert(coef, 1.0);
         assert(cast_time, 0.0);
@@ -89,7 +99,7 @@ mod tests {
     fn test_gcd_skill_haste() {
         let (skill, shared_state) = get_gcd_skill(10f32, 20f32, true, false);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         let gcd = skill.get_gcd(shared_state.clone(), Class::Warrior);
         assert(coef, 0.9);
         assert(cast_time, 0.0);
@@ -101,7 +111,7 @@ mod tests {
     fn test_gcd_skill_frenzy_no_warrior_haste() {
         let (skill, shared_state) = get_gcd_skill(10f32, 20f32, true, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Enchanter);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Enchanter);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Enchanter, None);
         let gcd = skill.get_gcd(shared_state.clone(), Class::Enchanter);
         assert(coef, 0.9);
         assert(cast_time, 0.0);
@@ -113,7 +123,7 @@ mod tests {
     fn test_gcd_skill_frenzy_warrior_haste() {
         let (skill, shared_state) = get_gcd_skill(10f32, 20f32, true, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         let gcd = skill.get_gcd(shared_state.clone(), Class::Warrior);
         assert(coef, 0.72);
         assert(cast_time, 0.0);
@@ -125,7 +135,7 @@ mod tests {
     fn test_gcd_skill_frenzy_no_haste_warrior_haste() {
         let (skill, shared_state) = get_gcd_skill(10f32, 20f32, false, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         let gcd = skill.get_gcd(shared_state.clone(), Class::Warrior);
         assert(coef, 0.8);
         assert(cast_time, 0.0);
@@ -137,7 +147,7 @@ mod tests {
     fn test_no_skill_haste() {
         let (skill, shared_state) = get_long_cast_skill(10f32, 20f32, false, false);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         assert(coef, 1.0);
         assert(cast_time, 2.5);
         shared_state.stop();
@@ -147,7 +157,7 @@ mod tests {
     fn test_skill_haste() {
         let (skill, shared_state) = get_long_cast_skill(10f32, 20f32, true, false);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         assert(coef, 0.9);
         assert(cast_time, 2.25);
         shared_state.stop();
@@ -157,7 +167,7 @@ mod tests {
     fn test_skill_frenzy_no_warrior_haste() {
         let (skill, shared_state) = get_long_cast_skill(10f32, 20f32, true, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Enchanter);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Enchanter);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Enchanter, None);
         assert(coef, 0.9);
         assert(cast_time, 2.25);
         shared_state.stop();
@@ -167,7 +177,7 @@ mod tests {
     fn test_skill_frenzy_warrior_haste() {
         let (skill, shared_state) = get_long_cast_skill(10f32, 20f32, true, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         assert(coef, 0.72);
         assert(cast_time, 1.8);
         shared_state.stop();
@@ -177,7 +187,7 @@ mod tests {
     fn test_skill_frenzy_no_haste_warrior_haste() {
         let (skill, shared_state) = get_long_cast_skill(10f32, 20f32, false, true);
         let coef = skill.get_haste_coef(shared_state.clone(), Class::Warrior);
-        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior);
+        let cast_time = skill.cast_time(shared_state.clone(), Class::Warrior, None);
         assert(coef, 0.8);
         assert(cast_time, 2.0);
         shared_state.stop();
@@ -185,10 +195,11 @@ mod tests {
 
     #[test]
     fn test_skill_reduction() {
+        let shared_state = Arc::new(SharedStateHandle::new(1.0, 1.0));
         let skill = Skill {
             name: "Engulfing Darkness".to_string(),
             key: SKILL_BUTTON_1,
-            cast_time: 0.0,
+            cast_time: 5.0,
             cooldown: 45.0,
             buff_duration: None,
             debuff_duration: Some(18.0),
@@ -200,6 +211,7 @@ mod tests {
             None,
             None,
             Some(vec![("Engulfing Darkness".to_string(), 49.0)]),
+            Some(vec![("Engulfing Darkness".to_string(), 50.0)]),
             vec![],
             AutoAttack::Primary,
         );
@@ -209,8 +221,18 @@ mod tests {
             22.95,
         );
 
+        assert(
+            skill.cast_time(
+                shared_state.clone(),
+                Class::Enchanter,
+                class_config.cast_time_reductions.as_ref(),
+            ),
+            2.5,
+        );
+
         class_config = ClassConfig::new(
             Class::Warlock,
+            None,
             None,
             None,
             None,
@@ -222,6 +244,17 @@ mod tests {
             skill.get_cooldown(class_config.cd_reductions.as_ref()),
             45.0,
         );
+
+        assert(
+            skill.cast_time(
+                shared_state.clone(),
+                Class::Enchanter,
+                class_config.cast_time_reductions.as_ref(),
+            ),
+            5.0,
+        );
+
+        shared_state.stop();
     }
 
     fn assert(a: f32, b: f32) {

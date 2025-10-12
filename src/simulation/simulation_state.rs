@@ -284,6 +284,10 @@ impl SimulationState {
         let cast_time = skill.cast_time(
             self.shared_state.clone(),
             self.window_config.class_config.class,
+            self.window_config
+                .class_config
+                .cast_time_reductions
+                .as_ref(),
         );
         let ms = if cast_time > 0.0 {
             //let's wait for a cast time duration

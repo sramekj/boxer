@@ -84,6 +84,7 @@ impl Default for Config {
                         Class::Enchanter,
                         Some(vec!["Clarity".to_string()]),
                         None,
+                        Some(vec![("Enthrall".to_string(), 42.9)]),
                         None,
                         vec![
                             LootQuality::Socketed,
@@ -110,6 +111,7 @@ impl Default for Config {
                         None,
                         Some(vec!["Engulfing Darkness".to_string()]),
                         Some(vec![("Engulfing Darkness".to_string(), 87.9)]),
+                        None,
                         vec![
                             LootQuality::Socketed,
                             LootQuality::Rare,
@@ -138,6 +140,7 @@ impl Default for Config {
                             "Bulwark".to_string(),
                             "Double Throw".to_string(),
                         ]),
+                        None,
                         None,
                         vec![
                             LootQuality::Socketed,

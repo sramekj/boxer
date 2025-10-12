@@ -8,6 +8,7 @@ pub struct ClassConfig {
     pub cast_all_skills: Option<Vec<String>>,
     pub no_gcd_skills: Option<Vec<String>>,
     pub cd_reductions: Option<Vec<(String, f32)>>,
+    pub cast_time_reductions: Option<Vec<(String, f32)>>,
     pub loot_filter: Vec<LootQuality>,
     pub auto_attack: AutoAttack,
 }
@@ -24,6 +25,7 @@ impl ClassConfig {
         cast_all_skills: Option<Vec<String>>,
         no_gcd_skills: Option<Vec<String>>,
         cd_reductions: Option<Vec<(String, f32)>>,
+        cast_time_reductions: Option<Vec<(String, f32)>>,
         loot_filter: Vec<LootQuality>,
         auto_attack: AutoAttack,
     ) -> ClassConfig {
@@ -32,6 +34,7 @@ impl ClassConfig {
             cast_all_skills,
             no_gcd_skills,
             cd_reductions,
+            cast_time_reductions,
             loot_filter,
             auto_attack,
         }
