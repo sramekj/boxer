@@ -1,6 +1,3 @@
-use lazy_static::lazy_static;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
-lazy_static! {
-    pub static ref CRITICAL_SECTION: Mutex<()> = Mutex::new(());
-}
+pub static CRITICAL_SECTION: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
