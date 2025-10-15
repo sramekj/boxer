@@ -332,7 +332,7 @@ impl SimulationState {
 mod tests {
     use crate::configuration::config::{Class, Config};
     use crate::simulation::char_state::CharState::Fighting;
-    use crate::simulation::rotation::{Rotation, Rotations};
+    use crate::simulation::rotation::Rotation;
     use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::simulation_state::{DebugObj, SimulationState};
     use std::sync::Arc;

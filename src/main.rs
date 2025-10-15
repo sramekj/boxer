@@ -4,7 +4,7 @@ mod win_util;
 
 use crate::configuration::config::{Args, load_config};
 use crate::simulation::char_state::CharState;
-use crate::simulation::rotation::{Rotation, Rotations};
+use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::simulation_state::{DebugObj, SimulationState, WindowObj};
 use crate::win_util::{

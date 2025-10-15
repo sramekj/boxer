@@ -5,18 +5,37 @@ use crate::simulation::keys::{
 };
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_type::SkillType;
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+use std::{fs, io};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rotation {
     pub skills: Vec<Skill>,
 }
 
-pub trait Rotations {
-    fn get_rotation(input: Class, cfg: &Config) -> Rotation;
-}
+impl Rotation {
+    pub fn load<T>(&self, file_path: T) -> io::Result<Self>
+    where
+        T: AsRef<str>,
+    {
+        let path = Path::new(file_path.as_ref());
+        let file_str = fs::read_to_string(path)?;
+        let result: Self = serde_json::from_str(&file_str).map_err(io::Error::other)?;
+        Ok(result)
+    }
 
-impl Rotations for Rotation {
-    fn get_rotation(input: Class, cfg: &Config) -> Rotation {
+    pub fn save<T>(&self, file_path: T) -> io::Result<()>
+    where
+        T: AsRef<str>,
+    {
+        let path = Path::new(file_path.as_ref());
+        let serialized = serde_json::to_string_pretty(self).map_err(io::Error::other)?;
+        fs::write(path, serialized)?;
+        Ok(())
+    }
+
+    pub fn get_rotation(input: Class, cfg: &Config) -> Rotation {
         match input {
             Class::Warrior => Rotation {
                 skills: vec![

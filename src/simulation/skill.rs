@@ -3,9 +3,10 @@ use crate::simulation::char_state::CharState;
 use crate::simulation::keys::Key;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill_type::SkillType;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Skill {
     pub name: String,
     pub key: Key,
