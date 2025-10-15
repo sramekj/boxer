@@ -13,6 +13,7 @@
 - accurate tracking of cooldowns, cooldown reductions, skill haste (frenzy, augmentation)  
 - tracking of buffs/debuffs  
 - automatically using hp pots on low health  
+- load custom rotations from .json files  
 
 ### Tested classes (atm.)  
 - Enchanter  

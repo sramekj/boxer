@@ -56,7 +56,7 @@ impl Rotation {
         let folder_name = "rotations/";
         let path = Path::new(folder_name).join(file_name);
         Rotation::load(path).unwrap_or_else(|e| {
-            panic!("Saving of {} rotation failed: {}", class, e);
+            panic!("Loading of {} rotation failed: {}", class, e);
         })
     }
 }
