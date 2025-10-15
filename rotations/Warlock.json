@@ -1,0 +1,49 @@
+{
+  "skills": [
+    {
+      "name": "Lich Form",
+      "key": 189,
+      "cast_time": 3.0,
+      "cooldown": 0.0,
+      "buff_duration": 720.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Profane Spirit",
+      "key": 187,
+      "cast_time": 2.5,
+      "cooldown": 0.0,
+      "buff_duration": 900.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Engulfing Darkness",
+      "key": 49,
+      "cast_time": 0.0,
+      "cooldown": 45.0,
+      "buff_duration": null,
+      "debuff_duration": 18.0,
+      "skill_type": "Debuff"
+    },
+    {
+      "name": "Explosive Plaque",
+      "key": 51,
+      "cast_time": 0.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": 30.0,
+      "skill_type": "Debuff"
+    },
+    {
+      "name": "Venom Bolt",
+      "key": 52,
+      "cast_time": 3.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    }
+  ]
+}

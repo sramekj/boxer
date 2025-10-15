@@ -130,7 +130,7 @@ fn main() -> windows::core::Result<()> {
             .expect("Failed to set window position");
         }
 
-        let rotation = Rotation::get_rotation(active_window.class_config.class, &cfg);
+        let rotation = Rotation::load_rotation(active_window.class_config.class);
 
         let simulation = if args.debug_sim {
             Arc::new(SimulationState::new(

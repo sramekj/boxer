@@ -342,7 +342,7 @@ mod tests {
     fn test_simulation() {
         let cfg = Config::default();
 
-        let rotation = Rotation::get_rotation(Class::Enchanter, &cfg);
+        let rotation = Rotation::load_rotation(Class::Enchanter);
 
         let simulation = SimulationState::new(
             cfg.sync_interval_ms,

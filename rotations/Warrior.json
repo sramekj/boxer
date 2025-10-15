@@ -1,0 +1,67 @@
+{
+  "skills": [
+    {
+      "name": "Intrepid Shout",
+      "key": 187,
+      "cast_time": 0.0,
+      "cooldown": 0.0,
+      "buff_duration": 240.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Frenzy",
+      "key": 53,
+      "cast_time": 0.0,
+      "cooldown": 60.0,
+      "buff_duration": 39.5,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Bulwark",
+      "key": 189,
+      "cast_time": 0.0,
+      "cooldown": 40.0,
+      "buff_duration": 16.3,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Rupture",
+      "key": 52,
+      "cast_time": 0.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": 18.0,
+      "skill_type": "Debuff"
+    },
+    {
+      "name": "Double Throw",
+      "key": 50,
+      "cast_time": 0.0,
+      "cooldown": 20.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    },
+    {
+      "name": "Furious Cleave",
+      "key": 49,
+      "cast_time": 0.0,
+      "cooldown": 16.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    },
+    {
+      "name": "Rupture",
+      "key": 52,
+      "cast_time": 0.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    }
+  ]
+}

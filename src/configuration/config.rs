@@ -3,6 +3,7 @@ use crate::configuration::hex_hwnd;
 use crate::simulation::loot::LootQuality;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 use windows::Win32::Foundation::HWND;
@@ -31,6 +32,12 @@ pub enum Class {
     Warrior,
 }
 
+impl Display for Class {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct WindowConfig {
     pub title: Option<String>,
@@ -51,9 +58,7 @@ unsafe impl Sync for WindowConfig {}
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Config {
     pub skill_haste_percent: f32,
-    pub frenzy_duration: f32,
     pub frenzy_haste_percent: f32,
-    pub bulwark_duration: f32,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
     pub start_offset_ms: u64,
@@ -64,9 +69,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             skill_haste_percent: 39.0,
-            frenzy_duration: 39.5,
             frenzy_haste_percent: 41.9,
-            bulwark_duration: 16.3,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
             start_offset_ms: 100,
