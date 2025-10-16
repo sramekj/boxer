@@ -5,7 +5,7 @@ use crate::simulation::keys::{
 };
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::simulation::skill::Skill;
-use crate::win_util::{focus_window, send_key_vk};
+use crate::win_util::{focus_window, send_key_vk, set_mouse};
 use colored::Colorize;
 use std::thread;
 use std::time::Duration;
@@ -19,6 +19,7 @@ pub trait Interactor {
     fn auto_attack(&self, auto_attack: AutoAttack) -> bool;
     fn use_hp_pot(&self) -> bool;
     fn inventory_toggle(&self) -> bool;
+    fn leave_to_town(&self) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -60,6 +61,11 @@ impl Interactor for DebugObj {
 
     fn inventory_toggle(&self) -> bool {
         println!("{}", "Toggling an inventory".bright_purple());
+        true
+    }
+
+    fn leave_to_town(&self) -> bool {
+        println!("{}", "Leaving to town".red());
         true
     }
 }
@@ -145,5 +151,16 @@ impl Interactor for WindowObj {
         thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
         drop(_lock);
         result
+    }
+
+    fn leave_to_town(&self) -> bool {
+        println!("{}", "Leaving to town".red());
+        let _lock = CRITICAL_SECTION.lock().unwrap();
+        let result1 = focus_window(self.hwnd).as_bool() && set_mouse(self.hwnd, 948, 304, true);
+        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
+        let result2 = focus_window(self.hwnd).as_bool() && set_mouse(self.hwnd, 1022, 432, true);
+        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
+        drop(_lock);
+        result1 && result2
     }
 }

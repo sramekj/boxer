@@ -19,17 +19,19 @@ use windows::Win32::Graphics::Gdi::{
 use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
 use windows::Win32::UI::HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput, SetFocus, VIRTUAL_KEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_KEYUP, MOUSE_EVENT_FLAGS,
+    MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
+    MOUSEINPUT, SendInput, SetFocus, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, FindWindowW, GetClientRect, GetCursorPos, GetForegroundWindow,
     GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, HWND_TOP, IsIconic,
-    IsWindowVisible, PostMessageW, SW_RESTORE, SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow,
-    SetWindowPos, ShowWindow, WM_KEYDOWN, WM_KEYUP,
+    IsWindowVisible, PostMessageW, SW_RESTORE, SWP_NOZORDER, SWP_SHOWWINDOW, SetCursorPos,
+    SetForegroundWindow, SetWindowPos, ShowWindow, WM_KEYDOWN, WM_KEYUP,
 };
 use windows::core::{Error, PCWSTR};
 
-fn make_input(vk: VIRTUAL_KEY, key_up: bool) -> INPUT {
+fn make_kb_input(vk: VIRTUAL_KEY, key_up: bool) -> INPUT {
     let flags = if key_up {
         KEYEVENTF_KEYUP
     } else {
@@ -49,9 +51,59 @@ fn make_input(vk: VIRTUAL_KEY, key_up: bool) -> INPUT {
     }
 }
 
+fn make_ms_input(dx: i32, dy: i32, flag: MOUSE_EVENT_FLAGS) -> INPUT {
+    INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx,
+                dy,
+                mouseData: 0,
+                dwFlags: flag,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    }
+}
+
 pub fn send_key_vk(key: Key) -> windows::core::Result<()> {
     unsafe {
-        let inputs = [make_input(key.into(), false), make_input(key.into(), true)];
+        let inputs = [
+            make_kb_input(key.into(), false),
+            make_kb_input(key.into(), true),
+        ];
+        let sent = SendInput(&inputs, size_of::<INPUT>() as i32);
+        if sent == 0 {
+            Err(Error::from(GetLastError()))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn send_mouse_click(dx: i32, dy: i32, left_click: bool) -> windows::core::Result<()> {
+    unsafe {
+        let inputs = [
+            make_ms_input(
+                dx,
+                dy,
+                if left_click {
+                    MOUSEEVENTF_LEFTDOWN
+                } else {
+                    MOUSEEVENTF_RIGHTDOWN
+                },
+            ),
+            make_ms_input(
+                dx,
+                dy,
+                if left_click {
+                    MOUSEEVENTF_LEFTUP
+                } else {
+                    MOUSEEVENTF_RIGHTUP
+                },
+            ),
+        ];
         let sent = SendInput(&inputs, size_of::<INPUT>() as i32);
         if sent == 0 {
             Err(Error::from(GetLastError()))
@@ -429,6 +481,35 @@ pub fn debug_mouse_color(_hwnd: HWND) {
         if DEBUG_DOT && debug_dot(pt.x, pt.y).is_err() {
             eprintln!("Failed to draw a dot");
         }
+    }
+}
+
+pub fn set_mouse(hwnd_opt: Option<HWND>, x: i32, y: i32, click: bool) -> bool {
+    unsafe {
+        let hwnd = hwnd_opt.expect("Could not obtain window handle");
+
+        let mut pt = POINT { x, y };
+        if !ClientToScreen(hwnd, &mut pt).as_bool() {
+            return false;
+        }
+
+        if SetCursorPos(pt.x, pt.y).is_err() {
+            return false;
+        }
+
+        if click {
+            return if send_mouse_click(0, 0, true).is_err() {
+                eprintln!(
+                    "{}",
+                    format!("Failed to mouse click: {:?}", pt).bright_magenta()
+                );
+                true
+            } else {
+                println!("{}", format!("Clicked mouse: {:?}", pt).bright_magenta());
+                false
+            };
+        }
+        true
     }
 }
 

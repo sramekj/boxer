@@ -51,7 +51,12 @@ fn main() -> windows::core::Result<()> {
             eprintln!("No windows in configuration found");
             return Ok(());
         }
-        if let Some(first_window) = cfg.windows.first()
+        if let Some(first_window) = cfg
+            .windows
+            .iter()
+            .filter(|w| w.active)
+            .collect::<Vec<_>>()
+            .first()
             && let Some(window_title) = first_window.title.as_deref()
         {
             let hwnd_opt = find_window_by_title(window_title);

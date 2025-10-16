@@ -77,7 +77,8 @@ impl SimulationState {
     }
 
     pub fn is_master(&self) -> bool {
-        self.window_config.master
+        //always a master if playing alone...
+        self.window_config.master || self.num_active_characters == 1
     }
 
     pub fn debug_checker(&self) {
@@ -137,6 +138,14 @@ impl SimulationState {
                     if self.left_combat(prev_state, state) {
                         //we should track debuffs only during fight, otherwise it would block possible casts
                         self.skill_tracker.reset_debuffs();
+                    }
+
+                    //leave to town if we are full... no point of farming
+                    if state == CharState::InDungeon
+                        && self.state_checker.is_inventory_full()
+                        && self.is_master()
+                    {
+                        self.interactor.leave_to_town();
                     }
 
                     if state == CharState::AtShrine && self.interactor.interact() {

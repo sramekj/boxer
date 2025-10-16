@@ -27,8 +27,9 @@
 - auto level up  
 
 ### TODO (will do)
-- loot tiers (normal, exceptional, elite)   
+- loot tiers (normal, exceptional, elite)  
 - eventually add support for more classes  
+- go to town when inventory is full  
 
 ### Known issues
 
