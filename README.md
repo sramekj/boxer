@@ -14,6 +14,7 @@
 - tracking of buffs/debuffs  
 - automatically using hp pots on low health  
 - load custom rotations from .json files  
+- automatically go to town when inventory is full  
 
 ### Tested classes (atm.)  
 - Enchanter  
@@ -28,8 +29,7 @@
 
 ### TODO (will do)
 - loot tiers (normal, exceptional, elite)  
-- eventually add support for more classes  
-- go to town when inventory is full  
+- eventually add support for more classes
 
 ### Known issues
 
