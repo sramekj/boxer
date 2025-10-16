@@ -140,12 +140,20 @@ impl SimulationState {
                         self.skill_tracker.reset_debuffs();
                     }
 
-                    //leave to town if we are full... no point of farming
+                    if state == CharState::InDungeon && self.state_checker.is_inventory_full() {
+                        self.shared_state.set_full_inventory(true);
+                    }
+
+                    //leave to town if any of the party has full inventory... no point of farming
                     if state == CharState::InDungeon
-                        && self.state_checker.is_inventory_full()
+                        && self.shared_state.get_full_inventory()
+                        //only master can leave dungeon
                         && self.is_master()
+                        && self.interactor.leave_to_town()
                     {
-                        self.interactor.leave_to_town();
+                        // let's assume we clear the inventory in a town... so wait and clear shared state
+                        thread::sleep(Duration::from_millis(1000));
+                        self.shared_state.set_full_inventory(false);
                     }
 
                     if state == CharState::AtShrine && self.interactor.interact() {

@@ -14,6 +14,8 @@ enum SharedStateMessage {
     GetFrenzyApplied(Sender<bool>),
     GetSkillHastePercent(Sender<f32>),
     GetFrenzyPercent(Sender<f32>),
+    GetFullInventory(Sender<bool>),
+    SetFullInventory(bool, Sender<()>),
     Stop(Sender<()>),
 }
 
@@ -23,6 +25,7 @@ struct SharedStateActor {
     skill_haste_percent: f32,
     frenzy_buff_applied: bool,
     frenzy_percent: f32,
+    party_has_full_inventory: bool,
     receiver: Receiver<SharedStateMessage>,
 }
 
@@ -37,6 +40,7 @@ impl SharedStateActor {
             skill_haste_percent,
             frenzy_buff_applied: false,
             frenzy_percent,
+            party_has_full_inventory: false,
             receiver,
         }
     }
@@ -53,6 +57,10 @@ impl SharedStateActor {
                     self.frenzy_buff_applied = bool;
                     let _ = sender.send(());
                 }
+                SetFullInventory(bool, sender) => {
+                    self.party_has_full_inventory = bool;
+                    let _ = sender.send(());
+                }
                 GetSkillHasteApplied(sender) => {
                     let _ = sender.send(self.skill_haste_buff_applied);
                 }
@@ -64,6 +72,9 @@ impl SharedStateActor {
                 }
                 GetFrenzyPercent(sender) => {
                     let _ = sender.send(self.frenzy_percent);
+                }
+                GetFullInventory(sender) => {
+                    let _ = sender.send(self.party_has_full_inventory);
                 }
                 Stop(sender) => {
                     print!("Shutting down {}", type_of(&self));
@@ -122,6 +133,14 @@ impl SharedStateHandle {
 
     pub fn get_frenzy_percent(&self) -> f32 {
         self.ask(GetFrenzyPercent)
+    }
+
+    pub fn set_full_inventory(&self, state: bool) {
+        self.ask(|tx| SetFullInventory(state, tx));
+    }
+
+    pub fn get_full_inventory(&self) -> bool {
+        self.ask(GetFullInventory)
     }
 
     pub fn stop(&self) {
