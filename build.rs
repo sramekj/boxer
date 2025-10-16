@@ -27,5 +27,10 @@ fn main() {
         }
     }
 
-    println!("cargo:rerun-if-changed=rotations/");
+    cargo_emit::rerun_if_changed!(
+        "/rotations",
+        "/rotations/Enchanter.json",
+        "/rotations/Warlock.json",
+        "/rotations/Warrior.json",
+    );
 }

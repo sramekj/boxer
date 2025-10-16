@@ -56,6 +56,7 @@ dependencies = [
 name = "boxer"
 version = "0.1.0"
 dependencies = [
+ "cargo-emit",
  "clap",
  "colored",
  "serde",
@@ -63,6 +64,12 @@ dependencies = [
  "toml",
  "windows",
 ]
+
+[[package]]
+name = "cargo-emit"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1582e1c9e755dd6ad6b224dcffb135d199399a4568d454bd89fe515ca8425695"
 
 [[package]]
 name = "clap"
