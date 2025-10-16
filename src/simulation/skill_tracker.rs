@@ -19,6 +19,7 @@ const BUFF_DURATION_TOLERANCE_SEC: f32 = 3.0;
 const DEBUFF_DURATION_TOLERANCE_SEC: f32 = 1.0;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 #[non_exhaustive]
 enum SkillTrackerMessage {
     TrackCast(Skill, Option<Vec<(String, f32)>>, Sender<()>),

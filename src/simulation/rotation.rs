@@ -41,6 +41,7 @@ impl Rotation {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn save_rotation(class: Class, rotation: &Rotation) {
         let file_name = format!("{}.json", class);
         let folder_name = "rotations/";

@@ -99,6 +99,11 @@ impl SimulationState {
     }
 
     pub fn reset(&self) {
+        //let's assume we don't have any buffs
+        self.shared_state.set_skill_haste_applied(false);
+        self.shared_state.set_frenzy_applied(false);
+        //and non-full inventory -> this should eventually get autocorrected later
+        self.shared_state.set_full_inventory(false);
         self.skill_tracker.reset();
     }
 
