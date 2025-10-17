@@ -293,7 +293,7 @@ struct LineLocation(i32, i32, i32, Vec<PixelColor>);
 
 fn get_tier_markers() -> HashMap<Location, LootTier> {
     let mut hm: HashMap<Location, LootTier> = HashMap::new();
-    // let take all four corners of the item as any corner could be obscured by item graphics
+    // let's take all four corners of the item as any corner could be obscured by item graphics
     let coords = vec![(488, 475), (515, 475), (488, 503), (515, 503)];
     for (x, y) in coords {
         hm.insert(

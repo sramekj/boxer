@@ -62,6 +62,7 @@ pub struct Config {
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
     pub start_offset_ms: u64,
+    pub leave_when_full: bool,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -73,6 +74,7 @@ impl Default for Config {
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
             start_offset_ms: 100,
+            leave_when_full: true,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),

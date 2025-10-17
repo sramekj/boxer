@@ -44,6 +44,7 @@ pub struct SimulationState {
     pub num_active_characters: usize,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
+    pub leave_when_full: bool,
     pub skill_tracker: SkillTrackerHandle,
     pub interactor: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
@@ -57,6 +58,7 @@ impl SimulationState {
         num_active_characters: usize,
         window_config: WindowConfig,
         rotation: Rotation,
+        leave_when_full: bool,
         skill_caster: Box<dyn Interactor + Send + Sync>,
         state_checker: Box<dyn StateChecker + Send + Sync>,
         shared_state: Arc<SharedStateHandle>,
@@ -69,6 +71,7 @@ impl SimulationState {
             num_active_characters,
             window_config: window_config.clone(),
             rotation,
+            leave_when_full,
             skill_tracker: SkillTrackerHandle::new(shared_state.clone()),
             interactor: skill_caster,
             state_checker,
@@ -155,6 +158,7 @@ impl SimulationState {
                         && self.shared_state.get_full_inventory()
                         //only master can leave dungeon
                         && self.is_master()
+                        && self.leave_when_full
                         && self.interactor.leave_to_town()
                     {
                         // let's assume we clear the inventory in a town... so wait and clear shared state
@@ -373,6 +377,7 @@ mod tests {
             1,
             cfg.windows.first().unwrap().clone(),
             rotation,
+            false,
             Box::new(DebugObj::new(Fighting)),
             Box::new(DebugObj::new(Fighting)),
             Arc::new(SharedStateHandle::new(
