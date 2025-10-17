@@ -3,6 +3,7 @@ use crate::simulation::global_lock::CRITICAL_SECTION;
 use crate::simulation::loot::{LootQuality, LootTier};
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::win_util::{PixelColor, debug_screen, focus_window, get_pixel_color_local, scan_line};
+use crate::with_critical_section;
 use colored::Colorize;
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
@@ -216,11 +217,10 @@ fn check_line(
     debug_color: bool,
     debug_bmp: bool,
 ) -> bool {
-    let _lock = CRITICAL_SECTION.lock().unwrap();
-    _ = focus_window(hwnd).as_bool();
-    let result = check_line_no_focus(hwnd, location, debug_color, debug_bmp);
-    drop(_lock);
-    result
+    with_critical_section!(0, {
+        _ = focus_window(hwnd).as_bool();
+        check_line_no_focus(hwnd, location, debug_color, debug_bmp)
+    })
 }
 
 fn check_line_no_focus(
@@ -276,11 +276,10 @@ fn check_location<T>(
     result_state: T,
     debug_color: bool,
 ) -> Option<T> {
-    let _lock = CRITICAL_SECTION.lock().unwrap();
-    _ = focus_window(hwnd).as_bool();
-    let result = check_location_no_focus(hwnd, location, result_state, debug_color);
-    drop(_lock);
-    result
+    with_critical_section!(0, {
+        _ = focus_window(hwnd).as_bool();
+        check_location_no_focus(hwnd, location, result_state, debug_color)
+    })
 }
 
 //x, y, vector of colors (or)

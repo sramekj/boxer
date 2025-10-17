@@ -6,6 +6,7 @@ use crate::simulation::keys::{
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::simulation::skill::Skill;
 use crate::win_util::{focus_window, send_key_vk, set_mouse};
+use crate::with_critical_section;
 use colored::Colorize;
 use std::thread;
 use std::time::Duration;
@@ -75,48 +76,38 @@ impl Interactor for WindowObj {
     fn cast_skill(&self, skill: &Skill) -> bool {
         print!("Casting ");
         print!("{}", format!("'{}'", skill.name).bright_magenta());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(skill.key).is_ok()
+        })
     }
 
     fn loot(&self) -> bool {
         println!("{}", "Looting an item".green());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
+        })
     }
 
     fn interact(&self) -> bool {
         println!("{}", "Interacting".green());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(LOOT_INTERACT).is_ok()
+        })
     }
 
     fn discard(&self) -> bool {
         println!("{}", "Discarding an item".red());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(DISCARD).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(DISCARD).is_ok()
+        })
     }
 
     fn target_player(&self, player_index: usize) -> bool {
         println!("Targeting player {}", player_index + 1);
         if let Some(key) = Key::get_party_keys().get(player_index) {
-            let _lock = CRITICAL_SECTION.lock().unwrap();
-            let result = focus_window(self.hwnd).as_bool() && send_key_vk(*key).is_ok();
-            thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-            drop(_lock);
-            result
+            with_critical_section!(WAIT_TO_REGISTER_MS, {
+                focus_window(self.hwnd).as_bool() && send_key_vk(*key).is_ok()
+            })
         } else {
             false
         }
@@ -124,33 +115,27 @@ impl Interactor for WindowObj {
 
     fn auto_attack(&self, auto_attack: AutoAttack) -> bool {
         println!("{}", format!("Auto-attacking {:?}", auto_attack).magenta());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let key = match auto_attack {
-            AutoAttack::Primary => AUTO_ATTACK,
-            AutoAttack::Ranged => AUTO_RANGED_ATTACK,
-        };
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(key).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            let key = match auto_attack {
+                AutoAttack::Primary => AUTO_ATTACK,
+                AutoAttack::Ranged => AUTO_RANGED_ATTACK,
+            };
+            focus_window(self.hwnd).as_bool() && send_key_vk(key).is_ok()
+        })
     }
 
     fn use_hp_pot(&self) -> bool {
         println!("{}", "Using a HP potion".red());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(HEALTH_POT).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(HEALTH_POT).is_ok()
+        })
     }
 
     fn inventory_toggle(&self) -> bool {
         println!("{}", "Toggling an inventory".bright_purple());
-        let _lock = CRITICAL_SECTION.lock().unwrap();
-        let result = focus_window(self.hwnd).as_bool() && send_key_vk(INVENTORY).is_ok();
-        thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
-        drop(_lock);
-        result
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(INVENTORY).is_ok()
+        })
     }
 
     fn leave_to_town(&self) -> bool {
