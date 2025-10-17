@@ -1,5 +1,5 @@
 use crate::configuration::config::Class;
-use crate::simulation::loot::LootQuality;
+use crate::simulation::loot::{LootQuality, LootTier};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct ClassConfig {
     pub no_gcd_skills: Option<Vec<String>>,
     pub cd_reductions: Option<Vec<(String, f32)>>,
     pub cast_time_reductions: Option<Vec<(String, f32)>>,
-    pub loot_filter: Vec<LootQuality>,
+    pub loot_filter: Vec<LootFilterItem>,
     pub auto_attack: AutoAttack,
 }
 
@@ -19,6 +19,9 @@ pub enum AutoAttack {
     Ranged,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, Eq, PartialEq)]
+pub struct LootFilterItem(pub LootQuality, pub LootTier);
+
 impl ClassConfig {
     pub fn new(
         class: Class,
@@ -26,7 +29,7 @@ impl ClassConfig {
         no_gcd_skills: Option<Vec<String>>,
         cd_reductions: Option<Vec<(String, f32)>>,
         cast_time_reductions: Option<Vec<(String, f32)>>,
-        loot_filter: Vec<LootQuality>,
+        loot_filter: Vec<LootFilterItem>,
         auto_attack: AutoAttack,
     ) -> ClassConfig {
         ClassConfig {

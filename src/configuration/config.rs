@@ -1,6 +1,8 @@
-use crate::configuration::class_config::{AutoAttack, ClassConfig};
+use crate::configuration::class_config::{AutoAttack, ClassConfig, LootFilterItem};
 use crate::configuration::hex_hwnd;
-use crate::simulation::loot::LootQuality;
+use crate::simulation::loot::LootQuality::*;
+use crate::simulation::loot::LootTier;
+use crate::simulation::loot::LootTier::*;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -91,14 +93,7 @@ impl Default for Config {
                         None,
                         Some(vec![("Enthrall".to_string(), 42.9)]),
                         None,
-                        vec![
-                            LootQuality::Socketed,
-                            LootQuality::Rare,
-                            LootQuality::Epic,
-                            LootQuality::Set,
-                            LootQuality::Legendary,
-                            LootQuality::Rune,
-                        ],
+                        get_default_loot_filter(),
                         AutoAttack::Primary,
                     ),
                 },
@@ -117,14 +112,7 @@ impl Default for Config {
                         Some(vec!["Engulfing Darkness".to_string()]),
                         Some(vec![("Engulfing Darkness".to_string(), 87.9)]),
                         None,
-                        vec![
-                            LootQuality::Socketed,
-                            LootQuality::Rare,
-                            LootQuality::Epic,
-                            LootQuality::Set,
-                            LootQuality::Legendary,
-                            LootQuality::Rune,
-                        ],
+                        get_default_loot_filter(),
                         AutoAttack::Primary,
                     ),
                 },
@@ -147,20 +135,31 @@ impl Default for Config {
                         ]),
                         None,
                         None,
-                        vec![
-                            LootQuality::Socketed,
-                            LootQuality::Rare,
-                            LootQuality::Epic,
-                            LootQuality::Set,
-                            LootQuality::Legendary,
-                            LootQuality::Rune,
-                        ],
+                        get_default_loot_filter(),
                         AutoAttack::Primary,
                     ),
                 },
             ],
         }
     }
+}
+
+fn get_default_loot_filter() -> Vec<LootFilterItem> {
+    vec![
+        LootFilterItem(Socketed, Elite),
+        LootFilterItem(Rare, Exceptional),
+        LootFilterItem(Rare, Elite),
+        LootFilterItem(Epic, LootTier::Normal),
+        LootFilterItem(Epic, Exceptional),
+        LootFilterItem(Epic, Elite),
+        LootFilterItem(Set, LootTier::Normal),
+        LootFilterItem(Set, Exceptional),
+        LootFilterItem(Set, Elite),
+        LootFilterItem(Legendary, LootTier::Normal),
+        LootFilterItem(Legendary, Exceptional),
+        LootFilterItem(Legendary, Elite),
+        LootFilterItem(Rune, LootTier::Normal),
+    ]
 }
 
 const CFG_FILENAME: &str = "config.toml";

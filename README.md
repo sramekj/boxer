@@ -6,7 +6,7 @@
 - multi client support  
 - automatic looting/discarding of loot (including full inventory detection)  
 - looting all runes  
-- implemented loot filter  
+- implemented loot filter  (both rarity and tier)  
 - automatic buffing of party members  
 - accurate detection of different states  (death, in town, fighting, looting...)  
 - selection of auto-attack (primary/ranged)  
@@ -28,13 +28,12 @@
 - auto level up  
 
 ### TODO (will do)
-- loot tiers (normal, exceptional, elite)  
-- eventually add support for more classes
+- eventually add support for more classes  
 
 ### Known issues
 
 - Character loss of control (stun, silence etc.) will screw a rotation. It's usually a mild inconvenience unless it happens during long buff application. It is hard to detect, so I may not bother fixing/detecting this.  
-- Damage pushback will slow some longer casts and it may screw with the rotation - cannot do much with this atm. (There is a cast leeway parameter in a config to give a general buffer for non-instant casts).
+- Damage pushback will slow some longer casts so it may screw with the rotation - cannot do much with this atm. (There is a cast leeway parameter in a config to give a general buffer for non-instant casts).
 
 ### Notes
 

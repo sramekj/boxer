@@ -1,7 +1,8 @@
+use crate::configuration::class_config::LootFilterItem;
 use crate::configuration::config::WindowConfig;
 use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
-use crate::simulation::loot::LootQuality;
+use crate::simulation::loot::{LootQuality, LootTier};
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
@@ -288,12 +289,18 @@ impl SimulationState {
             //could not figure out quality... cannot loot (needs a manual intervention)
             return false;
         }
+        let tier = self.state_checker.get_loot_tier();
+        if tier == LootTier::Unknown {
+            //could not figure out tier... cannot loot (needs a manual intervention)
+            return false;
+        }
+
         //now loot according to the loot filter
         if self
             .window_config
             .class_config
             .loot_filter
-            .contains(&quality)
+            .contains(&LootFilterItem(quality, tier))
         {
             self.interactor.loot()
         } else {
