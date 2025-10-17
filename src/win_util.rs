@@ -295,7 +295,12 @@ const DEBUG_RECTANGLE: bool = false;
 const DEBUG_DOT: bool = false;
 
 #[allow(dead_code)]
-fn save_bmp_file(filename: &str, width: i32, height: i32, pixels: &[u8]) -> std::io::Result<()> {
+fn save_bmp_file<T: AsRef<str>>(
+    filename: T,
+    width: i32,
+    height: i32,
+    pixels: &[u8],
+) -> std::io::Result<()> {
     let file_size = 14 + size_of::<BITMAPINFOHEADER>() + pixels.len();
     // BMP File Header (14 bytes)
     let mut file_header = vec![
@@ -321,7 +326,7 @@ fn save_bmp_file(filename: &str, width: i32, height: i32, pixels: &[u8]) -> std:
         biClrImportant: 0,
     };
     // Write to file
-    let mut file = File::create(filename)?;
+    let mut file = File::create(filename.as_ref())?;
     file.write_all(&file_header)?;
     file.write_all(unsafe {
         std::slice::from_raw_parts(
@@ -330,8 +335,93 @@ fn save_bmp_file(filename: &str, width: i32, height: i32, pixels: &[u8]) -> std:
         )
     })?;
     file.write_all(pixels)?;
-    println!("Saved the bmp file to {}", filename);
+    println!("Saved the bmp file to {}", filename.as_ref());
     Ok(())
+}
+
+pub fn debug_screen<T: AsRef<str>>(
+    hwnd_opt: Option<HWND>,
+    file_name: T,
+) -> windows::core::Result<()> {
+    unsafe {
+        let hwnd = hwnd_opt.ok_or_else(|| Error::from(ERROR_INVALID_WINDOW_HANDLE))?;
+        let hdc_window = GetDC(None);
+        if hdc_window.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+        if hdc_mem.0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+
+        let mut rect = RECT::default();
+        GetClientRect(hwnd, &mut rect).map_err(|_| Error::from(GetLastError()))?;
+
+        let width = rect.right - rect.left;
+        let height = rect.bottom - rect.top;
+
+        let hbitmap = CreateCompatibleBitmap(hdc_window, width, height);
+        let old_obj = SelectObject(hdc_mem, HGDIOBJ(hbitmap.0));
+
+        let mut point = POINT { x: 0, y: 0 };
+        ClientToScreen(hwnd, &mut point).as_bool();
+
+        BitBlt(
+            hdc_mem,
+            0,
+            0,
+            width,
+            height,
+            Some(hdc_window),
+            point.x,
+            point.y,
+            SRCCOPY,
+        )
+        .map_err(|_| Error::from(GetLastError()))?;
+
+        let mut bmi: BITMAPINFO = zeroed();
+        bmi.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -height; // negative to indicate top-down DIB
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32; // We want BGRA (4 bytes per pixel)
+        bmi.bmiHeader.biCompression = BI_RGB.0;
+
+        let row_stride = (width * 4) as usize;
+        let image_size = row_stride * (height as usize);
+        let mut buffer = vec![0u8; image_size];
+
+        let res = GetDIBits(
+            hdc_mem,
+            hbitmap,
+            0,
+            height as u32,
+            Some(buffer.as_mut_ptr() as *mut _),
+            &mut bmi,
+            DIB_RGB_COLORS,
+        );
+
+        if res == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+
+        save_bmp_file(file_name.as_ref(), width, height, &buffer)?;
+
+        if SelectObject(hdc_mem, old_obj).0.is_null() {
+            return Err(Error::from(GetLastError()));
+        }
+        if !DeleteObject(HGDIOBJ(hbitmap.0)).as_bool() {
+            return Err(Error::from(GetLastError()));
+        }
+        if !DeleteDC(hdc_mem).as_bool() {
+            return Err(Error::from(GetLastError()));
+        }
+        if ReleaseDC(None, hdc_window) == 0 {
+            return Err(Error::from(GetLastError()));
+        }
+        Ok(())
+    }
 }
 
 pub fn scan_line(

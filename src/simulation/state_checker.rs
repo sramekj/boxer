@@ -1,8 +1,8 @@
 use crate::simulation::char_state::CharState;
 use crate::simulation::global_lock::CRITICAL_SECTION;
-use crate::simulation::loot::LootQuality;
+use crate::simulation::loot::{LootQuality, LootTier};
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
-use crate::win_util::{PixelColor, focus_window, get_pixel_color_local, scan_line};
+use crate::win_util::{PixelColor, debug_screen, focus_window, get_pixel_color_local, scan_line};
 use colored::Colorize;
 use std::collections::HashMap;
 use windows::Win32::Foundation::HWND;
@@ -14,6 +14,7 @@ const COLOR_DISTANCE_TOLERANCE: u8 = 2;
 pub trait StateChecker {
     fn get_state(&self, number_of_players: usize) -> CharState;
     fn get_loot_quality(&self) -> LootQuality;
+    fn get_loot_tier(&self) -> LootTier;
     fn is_inventory_full(&self) -> bool;
     fn is_inventory_opened(&self) -> bool;
     fn is_on_low_hp(&self, number_of_players: usize) -> bool;
@@ -30,6 +31,12 @@ impl StateChecker for DebugObj {
         let quality = LootQuality::Epic;
         println!("Loot quality: {:?}", quality);
         quality
+    }
+
+    fn get_loot_tier(&self) -> LootTier {
+        let tier = LootTier::Normal;
+        println!("Loot tier: {:?}", tier);
+        tier
     }
 
     fn is_inventory_full(&self) -> bool {
@@ -143,6 +150,29 @@ impl StateChecker for WindowObj {
         }
         println!("Loot quality: {:?}", quality);
         quality
+    }
+
+    fn get_loot_tier(&self) -> LootTier {
+        let mut tier = LootTier::Unknown;
+        for (loc, t) in get_tier_markers() {
+            if let Some(_tier) = check_location(self.hwnd, loc, t, DEBUG_LOCATION_COLOR) {
+                tier = _tier;
+                break;
+            }
+        }
+
+        if tier == LootTier::Unknown {
+            //debug print color
+            _ = get_tier_markers()
+                .keys()
+                .last()
+                .cloned()
+                .map(|loc| check_location(self.hwnd, loc, LootTier::Unknown, true));
+            //and flush bmp
+            _ = debug_screen(self.hwnd, "loot_tier.bmp");
+        }
+        println!("Loot tier: {:?}", tier);
+        tier
     }
 
     fn is_inventory_full(&self) -> bool {
@@ -260,6 +290,22 @@ struct Location(i32, i32, Vec<PixelColor>);
 //x1, x2, y, vector of colors (or)
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct LineLocation(i32, i32, i32, Vec<PixelColor>);
+
+fn get_tier_markers() -> HashMap<Location, LootTier> {
+    let mut hm: HashMap<Location, LootTier> = HashMap::new();
+    let x = 488;
+    let y = 475;
+    hm.insert(Location(x, y, vec![PixelColor(0x3A75EC)]), LootTier::Elite);
+    hm.insert(
+        Location(x, y, vec![PixelColor(0x70A1B5), PixelColor(0x8F94B3)]),
+        LootTier::Exceptional,
+    );
+    hm.insert(
+        Location(x, y, vec![PixelColor(0x131215), PixelColor(0x1C303A)]),
+        LootTier::Normal,
+    );
+    hm
+}
 
 fn get_loot_line_locations() -> HashMap<LineLocation, LootQuality> {
     let mut hm: HashMap<LineLocation, LootQuality> = HashMap::new();

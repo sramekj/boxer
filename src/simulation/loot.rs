@@ -12,3 +12,11 @@ pub enum LootQuality {
     Rune,
     Unknown,
 }
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
+pub enum LootTier {
+    Normal,
+    Exceptional,
+    Elite,
+    Unknown,
+}

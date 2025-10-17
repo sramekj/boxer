@@ -93,6 +93,7 @@ impl SimulationState {
             let state = self.state_checker.get_state(self.num_active_characters);
             if state == CharState::Looting {
                 _ = self.state_checker.get_loot_quality();
+                _ = self.state_checker.get_loot_tier();
             }
             thread::sleep(Duration::from_millis(self.sync_interval_ms));
         }
