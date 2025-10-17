@@ -293,17 +293,53 @@ struct LineLocation(i32, i32, i32, Vec<PixelColor>);
 
 fn get_tier_markers() -> HashMap<Location, LootTier> {
     let mut hm: HashMap<Location, LootTier> = HashMap::new();
-    let x = 488;
-    let y = 475;
-    hm.insert(Location(x, y, vec![PixelColor(0x3A75EC)]), LootTier::Elite);
-    hm.insert(
-        Location(x, y, vec![PixelColor(0x70A1B5), PixelColor(0x8F94B3)]),
-        LootTier::Exceptional,
-    );
-    hm.insert(
-        Location(x, y, vec![PixelColor(0x131215), PixelColor(0x1C303A)]),
-        LootTier::Normal,
-    );
+    // let take all four corners of the item as any corner could be obscured by item graphics
+    let coords = vec![(488, 475), (515, 475), (488, 503), (515, 503)];
+    for (x, y) in coords {
+        hm.insert(
+            Location(
+                x,
+                y,
+                vec![
+                    PixelColor(0x3A75EC),
+                    PixelColor(0x0077FF),
+                    PixelColor(0x1D69C9),
+                ],
+            ),
+            LootTier::Elite,
+        );
+        hm.insert(
+            Location(
+                x,
+                y,
+                vec![
+                    PixelColor(0x70A1B5),
+                    PixelColor(0x8F94B3),
+                    PixelColor(0x74A1AF),
+                    PixelColor(0x6392A1),
+                    PixelColor(0x74A2B5),
+                    PixelColor(0x838DA2),
+                    PixelColor(0x5DA796),
+                ],
+            ),
+            LootTier::Exceptional,
+        );
+        hm.insert(
+            Location(
+                x,
+                y,
+                vec![
+                    PixelColor(0x131215),
+                    PixelColor(0x1C303A),
+                    PixelColor(0x121719),
+                    PixelColor(0x472637),
+                    PixelColor(0x9F9F9F),
+                    PixelColor(0x103011),
+                ],
+            ),
+            LootTier::Normal,
+        );
+    }
     hm
 }
 
