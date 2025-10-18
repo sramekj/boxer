@@ -5,6 +5,7 @@ pub mod global_lock;
 pub mod interactor;
 pub mod keys;
 pub mod loot;
+pub mod maze_solver;
 pub mod rotation;
 pub mod shared_state;
 pub mod simulation_state;

@@ -3,11 +3,13 @@ use crate::simulation::global_lock::CRITICAL_SECTION;
 use crate::simulation::keys::{
     AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, INVENTORY, Key, LOOT_INTERACT,
 };
+use crate::simulation::maze_solver::Direction;
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::simulation::skill::Skill;
 use crate::win_util::{focus_window, send_key_vk, set_mouse};
 use crate::with_critical_section;
 use colored::Colorize;
+use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
@@ -21,6 +23,9 @@ pub trait Interactor {
     fn use_hp_pot(&self) -> bool;
     fn inventory_toggle(&self) -> bool;
     fn leave_to_town(&self) -> bool;
+    fn try_direction(&self, direction: Direction) -> bool;
+    fn walk(&self, direction: Direction) -> bool;
+    fn walk_back(&self, direction: Direction) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -67,6 +72,85 @@ impl Interactor for DebugObj {
 
     fn leave_to_town(&self) -> bool {
         println!("{}", "Leaving to town".red());
+        true
+    }
+
+    fn try_direction(&self, direction: Direction) -> bool {
+        let position = (
+            self.position_x.load(Ordering::SeqCst),
+            self.position_y.load(Ordering::SeqCst),
+        );
+        print!(
+            "{}",
+            format!("At {:?} and trying to go: {:?}. ", position, direction).bright_yellow()
+        );
+        let map = self.test_map.clone();
+        let map = map.lock().unwrap();
+        let result = map
+            .get(&position)
+            .is_some_and(|node| node.neighbors.contains_key(&direction));
+        println!(
+            "{}: {}",
+            format!("Can go {:?}", direction).white(),
+            if result {
+                format!("{:?}", result).green()
+            } else {
+                format!("{:?}", result).red()
+            }
+        );
+        result
+    }
+
+    fn walk(&self, direction: Direction) -> bool {
+        println!("{}", format!("Walking {:?}...", direction).bright_yellow());
+        let delta = direction.delta();
+        self.position_x.store(
+            self.position_x.load(Ordering::SeqCst) + delta.0,
+            Ordering::SeqCst,
+        );
+        self.position_y.store(
+            self.position_y.load(Ordering::SeqCst) + delta.1,
+            Ordering::SeqCst,
+        );
+        let new_position = (
+            self.position_x.load(Ordering::SeqCst),
+            self.position_y.load(Ordering::SeqCst),
+        );
+        println!("New position: {:?}", new_position);
+        let map = self.test_map.clone();
+        let mut map = map.lock().unwrap();
+        if let Some(new_pos_node) = map.get(&new_position) {
+            let visited = new_pos_node.make_visited();
+            map.insert(new_position, visited);
+        }
+        true
+    }
+
+    fn walk_back(&self, direction: Direction) -> bool {
+        println!(
+            "{}",
+            format!("Walking back (to {:?}...", direction).bright_yellow()
+        );
+        let delta = direction.delta();
+        self.position_x.store(
+            self.position_x.load(Ordering::SeqCst) + delta.0,
+            Ordering::SeqCst,
+        );
+        self.position_y.store(
+            self.position_y.load(Ordering::SeqCst) + delta.1,
+            Ordering::SeqCst,
+        );
+        let new_position = (
+            self.position_x.load(Ordering::SeqCst),
+            self.position_y.load(Ordering::SeqCst),
+        );
+        println!("New position: {:?}", new_position);
+        let map = self.test_map.clone();
+        let mut map = map.lock().unwrap();
+        if let Some(new_pos_node) = map.get(&new_position) {
+            let visited = new_pos_node.make_visited();
+            map.insert(new_position, visited);
+        }
         true
     }
 }
@@ -147,5 +231,17 @@ impl Interactor for WindowObj {
         thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
         drop(_lock);
         result1 && result2
+    }
+
+    fn try_direction(&self, direction: Direction) -> bool {
+        todo!()
+    }
+
+    fn walk(&self, direction: Direction) -> bool {
+        todo!()
+    }
+
+    fn walk_back(&self, direction: Direction) -> bool {
+        todo!()
     }
 }

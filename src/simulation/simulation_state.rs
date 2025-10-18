@@ -3,24 +3,39 @@ use crate::configuration::config::WindowConfig;
 use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::loot::{LootQuality, LootTier};
+use crate::simulation::maze_solver::{Node, Pos};
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_tracker::SkillTrackerHandle;
 use crate::simulation::state_checker::StateChecker;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use windows::Win32::Foundation::HWND;
 
 pub struct DebugObj {
     pub test_state: CharState,
+    pub test_map: Arc<Mutex<HashMap<Pos, Node>>>,
+    pub position_x: AtomicI32,
+    pub position_y: AtomicI32,
 }
 
 impl DebugObj {
-    pub fn new(test_state: CharState) -> DebugObj {
-        DebugObj { test_state }
+    pub fn new(
+        test_state: CharState,
+        test_map: Arc<Mutex<HashMap<Pos, Node>>>,
+        position_x: AtomicI32,
+        position_y: AtomicI32,
+    ) -> DebugObj {
+        DebugObj {
+            test_state,
+            test_map,
+            position_x,
+            position_y,
+        }
     }
 }
 
@@ -369,7 +384,8 @@ mod tests {
     use crate::simulation::rotation::Rotation;
     use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::simulation_state::{DebugObj, SimulationState};
-    use std::sync::Arc;
+    use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     #[ignore]
@@ -385,8 +401,18 @@ mod tests {
             cfg.windows.first().unwrap().clone(),
             rotation,
             false,
-            Box::new(DebugObj::new(Fighting)),
-            Box::new(DebugObj::new(Fighting)),
+            Box::new(DebugObj::new(
+                Fighting,
+                Arc::new(Mutex::new(HashMap::new())),
+                0.into(),
+                0.into(),
+            )),
+            Box::new(DebugObj::new(
+                Fighting,
+                Arc::new(Mutex::new(HashMap::new())),
+                0.into(),
+                0.into(),
+            )),
             Arc::new(SharedStateHandle::new(
                 cfg.skill_haste_percent,
                 cfg.frenzy_haste_percent,
