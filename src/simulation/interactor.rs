@@ -1,11 +1,12 @@
 use crate::configuration::class_config::AutoAttack;
 use crate::simulation::global_lock::CRITICAL_SECTION;
 use crate::simulation::keys::{
-    AUTO_ATTACK, AUTO_RANGED_ATTACK, DISCARD, HEALTH_POT, INVENTORY, Key, LOOT_INTERACT,
+    AUTO_ATTACK, AUTO_RANGED_ATTACK, AUTO_WALK, DISCARD, HEALTH_POT, INVENTORY, Key, LOOT_INTERACT,
 };
 use crate::simulation::maze_solver::Direction;
 use crate::simulation::simulation_state::{DebugObj, WindowObj};
 use crate::simulation::skill::Skill;
+use crate::simulation::state_checker::get_move_pixel;
 use crate::win_util::{focus_window, send_key_vk, set_mouse};
 use crate::with_critical_section;
 use colored::Colorize;
@@ -234,14 +235,45 @@ impl Interactor for WindowObj {
     }
 
     fn try_direction(&self, direction: Direction) -> bool {
-        todo!()
+        print!(
+            "{}",
+            format!("Trying to go: {:?}. ", direction).bright_yellow()
+        );
+
+        let px_before = get_move_pixel(self.hwnd);
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(direction.to_key()).is_ok()
+        });
+        //thread::sleep(Duration::from_millis(1000));
+        let px_after = get_move_pixel(self.hwnd);
+
+        let result = px_before != px_after;
+        println!(
+            "{}: {}",
+            format!("Can go {:?}", direction).white(),
+            if result {
+                format!("{:?}", result).green()
+            } else {
+                format!("{:?}", result).red()
+            }
+        );
+        result
     }
 
     fn walk(&self, direction: Direction) -> bool {
-        todo!()
+        println!("{}", format!("Walking {:?}...", direction).bright_yellow());
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
+        })
     }
 
     fn walk_back(&self, direction: Direction) -> bool {
-        todo!()
+        println!(
+            "{}",
+            format!("Walking back (to {:?}...", direction).bright_yellow()
+        );
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
+            focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
+        })
     }
 }

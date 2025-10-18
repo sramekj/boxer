@@ -1,4 +1,5 @@
 use crate::simulation::interactor::Interactor;
+use crate::simulation::keys::{Key, WALK_DOWN, WALK_LEFT, WALK_RIGHT, WALK_UP};
 use std::collections::HashMap;
 
 pub type Pos = (i32, i32);
@@ -46,6 +47,15 @@ impl Direction {
             Direction::Down => Direction::Up,
             Direction::Left => Direction::Right,
             Direction::Right => Direction::Left,
+        }
+    }
+
+    pub fn to_key(self) -> Key {
+        match self {
+            Direction::Left => WALK_LEFT,
+            Direction::Right => WALK_RIGHT,
+            Direction::Up => WALK_UP,
+            Direction::Down => WALK_DOWN,
         }
     }
 
@@ -135,6 +145,7 @@ impl Solver {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::simulation::char_state::CharState;
     use crate::simulation::maze_solver::Direction::*;

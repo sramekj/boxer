@@ -495,3 +495,11 @@ fn get_inventory_full_marker() -> Location {
 fn get_inventory_opened_marker() -> Location {
     Location(68, 473, vec![PixelColor(0x455D7D), PixelColor(0x45566C)])
 }
+
+// used to detect movement
+pub fn get_move_pixel(hwnd: Option<HWND>) -> PixelColor {
+    with_critical_section!(0, {
+        _ = focus_window(hwnd).as_bool();
+        get_pixel_color_local(hwnd, 54, 50).unwrap()
+    })
+}
