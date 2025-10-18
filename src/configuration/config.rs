@@ -65,6 +65,7 @@ pub struct Config {
     pub cast_leeway_ms: u64,
     pub start_offset_ms: u64,
     pub leave_when_full: bool,
+    pub auto_explore: bool,
     pub windows: Vec<WindowConfig>,
 }
 
@@ -77,6 +78,7 @@ impl Default for Config {
             cast_leeway_ms: 0,
             start_offset_ms: 100,
             leave_when_full: true,
+            auto_explore: true,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),

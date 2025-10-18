@@ -22,18 +22,19 @@
 - Warrior  
 
 ### Missing features (may or may not do in the future)
-- auto-explore  
 - auto town -> dungeon cycle  
 - auto inventory management (sell stuff in town, store good stuff in the bank)  
 - auto level up  
 
 ### TODO (will do)
+- auto-explore  
 - eventually add support for more classes  
 
 ### Known issues
 
 - Character loss of control (stun, silence etc.) will screw a rotation. It's usually a mild inconvenience unless it happens during long buff application. It is hard to detect, so I may not bother fixing/detecting this.  
-- Damage pushback will slow some longer casts so it may screw with the rotation - cannot do much with this atm. (There is a cast leeway parameter in a config to give a general buffer for non-instant casts).
+- Damage pushback will slow some longer casts so it may screw with the rotation - cannot do much with this atm. (There is a cast leeway parameter in a config to give a general buffer for non-instant casts).  
+- There is sometimes (quite rare - I am continuously working on improvements) an issue with loot detection. If the item is not correctly detected (quality and tier) it will not be looted and looting has to be done manually. This cannot be 100 % fixed as item's graphics are overlapping the key areas that the program scans (very few items that do not fit into a border frame).  
 
 ### Notes
 
