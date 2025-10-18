@@ -3,7 +3,7 @@ use crate::configuration::config::WindowConfig;
 use crate::simulation::char_state::CharState;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::loot::{LootQuality, LootTier};
-use crate::simulation::maze_solver::{Node, Pos};
+use crate::simulation::maze_solver::{Node, Pos, Solver};
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
@@ -61,10 +61,12 @@ pub struct SimulationState {
     pub window_config: WindowConfig,
     pub rotation: Rotation,
     pub leave_when_full: bool,
+    pub auto_explore: bool,
     pub skill_tracker: SkillTrackerHandle,
     pub interactor: Box<dyn Interactor + Send + Sync>,
     pub state_checker: Box<dyn StateChecker + Send + Sync>,
     pub shared_state: Arc<SharedStateHandle>,
+    pub maze_solver: Solver,
 }
 
 impl SimulationState {
@@ -75,9 +77,11 @@ impl SimulationState {
         window_config: WindowConfig,
         rotation: Rotation,
         leave_when_full: bool,
+        auto_explore: bool,
         skill_caster: Box<dyn Interactor + Send + Sync>,
         state_checker: Box<dyn StateChecker + Send + Sync>,
         shared_state: Arc<SharedStateHandle>,
+        maze_solver: Solver,
     ) -> Self {
         SimulationState {
             is_running: Arc::new(AtomicBool::new(false)),
@@ -88,10 +92,12 @@ impl SimulationState {
             window_config: window_config.clone(),
             rotation,
             leave_when_full,
+            auto_explore,
             skill_tracker: SkillTrackerHandle::new(shared_state.clone()),
             interactor: skill_caster,
             state_checker,
             shared_state,
+            maze_solver,
         }
     }
 
@@ -181,6 +187,15 @@ impl SimulationState {
                         thread::sleep(Duration::from_millis(1000));
                         self.shared_state.set_full_inventory(false);
                     }
+
+                    ////TODO::
+                    // if state == CharState::InDungeon && self.is_master() && self.auto_explore {
+                    //     println!("Trying to auto-explore");
+                    //     let everything_explored = self.maze_solver.explore_step();
+                    //     if everything_explored {
+                    //         self.interactor.leave_to_town();
+                    //     }
+                    // }
 
                     if state == CharState::AtShrine && self.interactor.interact() {
                         println!("Interacted with a shrine");
@@ -381,6 +396,7 @@ impl SimulationState {
 mod tests {
     use crate::configuration::config::{Class, Config};
     use crate::simulation::char_state::CharState::Fighting;
+    use crate::simulation::maze_solver::Solver;
     use crate::simulation::rotation::Rotation;
     use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::simulation_state::{DebugObj, SimulationState};
@@ -401,6 +417,7 @@ mod tests {
             cfg.windows.first().unwrap().clone(),
             rotation,
             false,
+            false,
             Box::new(DebugObj::new(
                 Fighting,
                 Arc::new(Mutex::new(HashMap::new())),
@@ -417,6 +434,12 @@ mod tests {
                 cfg.skill_haste_percent,
                 cfg.frenzy_haste_percent,
             )),
+            Solver::new(Box::new(DebugObj::new(
+                Fighting,
+                Arc::new(Mutex::new(HashMap::new())),
+                0.into(),
+                0.into(),
+            ))),
         );
 
         simulation.enable_toggle();

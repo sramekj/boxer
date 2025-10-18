@@ -82,7 +82,7 @@ impl Solver {
         }
     }
 
-    fn explore_step(&mut self) -> bool {
+    pub fn explore_step(&mut self) -> bool {
         if self.stack.is_empty() {
             return true; // Exploration done
         }

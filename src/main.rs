@@ -5,6 +5,7 @@ mod win_util;
 
 use crate::configuration::config::{Args, load_config};
 use crate::simulation::char_state::CharState;
+use crate::simulation::maze_solver::Solver;
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::simulation_state::{DebugObj, SimulationState, WindowObj};
@@ -147,6 +148,7 @@ fn main() -> windows::core::Result<()> {
                 active_window,
                 rotation,
                 cfg.leave_when_full,
+                cfg.auto_explore,
                 Box::new(DebugObj::new(
                     CharState::Fighting,
                     Arc::new(Mutex::new(HashMap::new())),
@@ -160,6 +162,12 @@ fn main() -> windows::core::Result<()> {
                     0.into(),
                 )),
                 shared_state.clone(),
+                Solver::new(Box::new(DebugObj::new(
+                    CharState::Fighting,
+                    Arc::new(Mutex::new(HashMap::new())),
+                    0.into(),
+                    0.into(),
+                ))),
             ))
         } else {
             Arc::new(SimulationState::new(
@@ -169,9 +177,11 @@ fn main() -> windows::core::Result<()> {
                 active_window,
                 rotation,
                 cfg.leave_when_full,
+                cfg.auto_explore,
                 Box::new(WindowObj::new(hwnd_opt)),
                 Box::new(WindowObj::new(hwnd_opt)),
                 shared_state.clone(),
+                Solver::new(Box::new(WindowObj::new(hwnd_opt))),
             ))
         };
 
