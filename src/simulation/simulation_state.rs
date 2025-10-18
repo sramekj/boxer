@@ -188,14 +188,15 @@ impl SimulationState {
                         self.shared_state.set_full_inventory(false);
                     }
 
-                    ////TODO::
-                    // if state == CharState::InDungeon && self.is_master() && self.auto_explore {
-                    //     println!("Trying to auto-explore");
-                    //     let everything_explored = self.maze_solver.explore_step();
-                    //     if everything_explored {
-                    //         self.interactor.leave_to_town();
-                    //     }
-                    // }
+                    if state == CharState::InDungeon && self.is_master() && self.auto_explore {
+                        println!("Trying to auto-explore");
+                        //TODO: investigate what happens if interrupted by fight
+                        let everything_explored = self.maze_solver.explore_step();
+                        if everything_explored {
+                            println!("Everything explored");
+                            self.interactor.leave_to_town();
+                        }
+                    }
 
                     if state == CharState::AtShrine && self.interactor.interact() {
                         println!("Interacted with a shrine");
@@ -394,6 +395,7 @@ impl SimulationState {
 
 #[cfg(test)]
 mod tests {
+    use crate::amtx;
     use crate::configuration::config::{Class, Config};
     use crate::simulation::char_state::CharState::Fighting;
     use crate::simulation::maze_solver::Solver;
@@ -401,7 +403,7 @@ mod tests {
     use crate::simulation::shared_state::SharedStateHandle;
     use crate::simulation::simulation_state::{DebugObj, SimulationState};
     use std::collections::HashMap;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     #[test]
     #[ignore]
@@ -420,13 +422,13 @@ mod tests {
             false,
             Box::new(DebugObj::new(
                 Fighting,
-                Arc::new(Mutex::new(HashMap::new())),
+                amtx!(HashMap::new()),
                 0.into(),
                 0.into(),
             )),
             Box::new(DebugObj::new(
                 Fighting,
-                Arc::new(Mutex::new(HashMap::new())),
+                amtx!(HashMap::new()),
                 0.into(),
                 0.into(),
             )),
@@ -436,7 +438,7 @@ mod tests {
             )),
             Solver::new(Box::new(DebugObj::new(
                 Fighting,
-                Arc::new(Mutex::new(HashMap::new())),
+                amtx!(HashMap::new()),
                 0.into(),
                 0.into(),
             ))),

@@ -1,6 +1,8 @@
+use crate::amtx;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::keys::{Key, WALK_DOWN, WALK_LEFT, WALK_RIGHT, WALK_UP};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 pub type Pos = (i32, i32);
 
@@ -11,6 +13,7 @@ pub struct Node {
 }
 
 impl Node {
+    #[allow(dead_code)]
     pub fn new(visited: bool, neighbors: HashMap<Direction, Pos>) -> Self {
         Node { visited, neighbors }
     }
@@ -62,82 +65,82 @@ impl Direction {
     const ALL: [Direction; 4] = [Self::Up, Self::Down, Self::Left, Self::Right];
 }
 
+type Stack = Vec<(Pos, Vec<Direction>)>;
+
 pub struct Solver {
-    map: HashMap<Pos, Node>,
+    map: Arc<Mutex<HashMap<Pos, Node>>>,
     interactor: Box<dyn Interactor + Send + Sync>,
-    stack: Vec<(Pos, Vec<Direction>)>,
-    current_pos: Pos,
+    stack: Arc<Mutex<Stack>>,
+    current_pos: Arc<Mutex<Pos>>,
 }
 
 impl Solver {
     pub fn new(interactor: Box<dyn Interactor + Send + Sync>) -> Self {
-        let mut map = HashMap::new();
         let start_pos = (0, 0);
-        map.insert(start_pos, Node::default());
+        let map = amtx!(HashMap::from([(start_pos, Node::default())]));
         Self {
             map,
             interactor,
-            stack: vec![(start_pos, Direction::ALL.to_vec())],
-            current_pos: start_pos,
+            stack: amtx!(vec![(start_pos, Direction::ALL.to_vec())]),
+            current_pos: amtx!(start_pos),
         }
     }
 
-    pub fn explore_step(&mut self) -> bool {
-        if self.stack.is_empty() {
+    pub fn explore_step(&self) -> bool {
+        let mut stack = self.stack.lock().unwrap();
+        let mut map = self.map.lock().unwrap();
+        let mut current_pos = self.current_pos.lock().unwrap();
+
+        if stack.is_empty() {
             return true; // Exploration done
         }
 
-        let (pos, directions) = self.stack.last_mut().unwrap();
+        let (pos, directions) = stack.last_mut().unwrap();
 
         // Mark current node visited
-        self.map.entry(*pos).or_default().visited = true;
+        map.entry(*pos).or_default().visited = true;
 
         while let Some(dir) = directions.pop() {
             let delta = dir.delta();
             let next_pos = (pos.0 + delta.0, pos.1 + delta.1);
 
-            if self.map.get(&next_pos).is_some_and(|n| n.visited) {
+            if map.get(&next_pos).is_some_and(|n| n.visited) {
                 continue; // Already visited
             }
 
             // Try to move in this direction
             if self.interactor.try_direction(dir) {
                 // Update map with the connection
-                self.map
-                    .get_mut(pos)
-                    .unwrap()
-                    .neighbors
-                    .insert(dir, next_pos);
-                self.map
-                    .entry(next_pos)
+                map.get_mut(pos).unwrap().neighbors.insert(dir, next_pos);
+                map.entry(next_pos)
                     .or_default()
                     .neighbors
                     .insert(dir.opposite(), *pos);
 
                 // Perform the move
                 self.interactor.walk(dir);
-                self.current_pos = next_pos;
+                *current_pos = next_pos;
 
                 // Push new node onto the stack with all 4 directions
-                self.stack.push((next_pos, Direction::ALL.to_vec()));
+                stack.push((next_pos, Direction::ALL.to_vec()));
 
                 return false; // only 1 move per step
             }
         }
 
         // No more directions to try — backtrack
-        self.stack.pop();
+        stack.pop();
 
-        if let Some((parent_pos, _)) = self.stack.last() {
+        if let Some((parent_pos, _)) = stack.last() {
             let back_dir = Direction::ALL.iter().find(|&&d| {
                 let delta = d.delta();
-                let candidate = (self.current_pos.0 + delta.0, self.current_pos.1 + delta.1);
+                let candidate = (current_pos.0 + delta.0, current_pos.1 + delta.1);
                 candidate == *parent_pos
             });
 
             if let Some(dir) = back_dir {
                 self.interactor.walk(*dir);
-                self.current_pos = *parent_pos;
+                *current_pos = *parent_pos;
             }
         }
 
@@ -147,12 +150,12 @@ impl Solver {
 
 #[cfg(test)]
 mod tests {
+    use crate::amtx;
     use crate::simulation::char_state::CharState;
     use crate::simulation::maze_solver::Direction::*;
     use crate::simulation::maze_solver::{Node, Solver};
     use crate::simulation::simulation_state::DebugObj;
     use std::collections::HashMap;
-    use std::sync::{Arc, Mutex};
 
     #[test]
     fn test_solver() {
@@ -164,7 +167,7 @@ mod tests {
         //          |        |
         // F(0,2) - G(1,2) - H(2,2)
 
-        let test_map = Arc::new(Mutex::new(HashMap::new()));
+        let test_map = amtx!(HashMap::new());
         {
             let map = test_map.clone();
             let mut map = map.lock().unwrap();
@@ -215,7 +218,7 @@ mod tests {
                 Node::new(false, HashMap::from([(Up, (2, 1)), (Left, (1, 2))])),
             );
         }
-        let mut solver = Solver::new(Box::new(DebugObj::new(
+        let solver = Solver::new(Box::new(DebugObj::new(
             CharState::InDungeon,
             test_map.clone(),
             0.into(),
@@ -224,7 +227,8 @@ mod tests {
 
         while !solver.explore_step() {}
 
-        assert_eq!(solver.map.len(), 8);
-        assert!(solver.map.iter().all(|item| item.1.visited))
+        let result_map = solver.map.lock().unwrap();
+        assert_eq!(result_map.len(), 8);
+        assert!(result_map.iter().all(|item| item.1.visited))
     }
 }

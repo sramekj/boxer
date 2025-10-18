@@ -12,3 +12,10 @@ macro_rules! with_critical_section {
         result
     }};
 }
+
+#[macro_export]
+macro_rules! amtx {
+    ($value:expr) => {
+        std::sync::Arc::new(std::sync::Mutex::new($value))
+    };
+}

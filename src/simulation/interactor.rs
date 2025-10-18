@@ -26,7 +26,6 @@ pub trait Interactor {
     fn leave_to_town(&self) -> bool;
     fn try_direction(&self, direction: Direction) -> bool;
     fn walk(&self, direction: Direction) -> bool;
-    fn walk_back(&self, direction: Direction) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -104,34 +103,6 @@ impl Interactor for DebugObj {
 
     fn walk(&self, direction: Direction) -> bool {
         println!("{}", format!("Walking {:?}...", direction).bright_yellow());
-        let delta = direction.delta();
-        self.position_x.store(
-            self.position_x.load(Ordering::SeqCst) + delta.0,
-            Ordering::SeqCst,
-        );
-        self.position_y.store(
-            self.position_y.load(Ordering::SeqCst) + delta.1,
-            Ordering::SeqCst,
-        );
-        let new_position = (
-            self.position_x.load(Ordering::SeqCst),
-            self.position_y.load(Ordering::SeqCst),
-        );
-        println!("New position: {:?}", new_position);
-        let map = self.test_map.clone();
-        let mut map = map.lock().unwrap();
-        if let Some(new_pos_node) = map.get(&new_position) {
-            let visited = new_pos_node.make_visited();
-            map.insert(new_position, visited);
-        }
-        true
-    }
-
-    fn walk_back(&self, direction: Direction) -> bool {
-        println!(
-            "{}",
-            format!("Walking back (to {:?}...", direction).bright_yellow()
-        );
         let delta = direction.delta();
         self.position_x.store(
             self.position_x.load(Ordering::SeqCst) + delta.0,
@@ -262,16 +233,6 @@ impl Interactor for WindowObj {
 
     fn walk(&self, direction: Direction) -> bool {
         println!("{}", format!("Walking {:?}...", direction).bright_yellow());
-        with_critical_section!(WAIT_TO_REGISTER_MS, {
-            focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
-        })
-    }
-
-    fn walk_back(&self, direction: Direction) -> bool {
-        println!(
-            "{}",
-            format!("Walking back (to {:?}...", direction).bright_yellow()
-        );
         with_critical_section!(WAIT_TO_REGISTER_MS, {
             focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
         })

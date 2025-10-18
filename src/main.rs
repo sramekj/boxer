@@ -16,7 +16,7 @@ use crate::win_util::{
 use clap::Parser;
 use colored::Colorize;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -151,20 +151,20 @@ fn main() -> windows::core::Result<()> {
                 cfg.auto_explore,
                 Box::new(DebugObj::new(
                     CharState::Fighting,
-                    Arc::new(Mutex::new(HashMap::new())),
+                    amtx!(HashMap::new()),
                     0.into(),
                     0.into(),
                 )),
                 Box::new(DebugObj::new(
                     CharState::Fighting,
-                    Arc::new(Mutex::new(HashMap::new())),
+                    amtx!(HashMap::new()),
                     0.into(),
                     0.into(),
                 )),
                 shared_state.clone(),
                 Solver::new(Box::new(DebugObj::new(
                     CharState::Fighting,
-                    Arc::new(Mutex::new(HashMap::new())),
+                    amtx!(HashMap::new()),
                     0.into(),
                     0.into(),
                 ))),
