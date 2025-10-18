@@ -55,32 +55,46 @@ impl Direction {
 pub struct Solver {
     map: HashMap<Pos, Node>,
     interactor: Box<dyn Interactor + Send + Sync>,
+    stack: Vec<(Pos, Vec<Direction>)>,
+    current_pos: Pos,
 }
 
 impl Solver {
     pub fn new(interactor: Box<dyn Interactor + Send + Sync>) -> Self {
+        let mut map = HashMap::new();
+        let start_pos = (0, 0);
+        map.insert(start_pos, Node::default());
         Self {
-            map: HashMap::new(),
+            map,
             interactor,
+            stack: vec![(start_pos, Direction::ALL.to_vec())],
+            current_pos: start_pos,
         }
     }
 
-    fn explore(&mut self, pos: Pos) {
-        self.map.entry(pos).or_default().visited = true;
+    fn explore_step(&mut self) -> bool {
+        if self.stack.is_empty() {
+            return true; // Exploration done
+        }
 
-        for &dir in &Direction::ALL {
-            let (dx, dy) = dir.delta();
-            let next_pos = (pos.0 + dx, pos.1 + dy);
+        let (pos, directions) = self.stack.last_mut().unwrap();
+
+        // Mark current node visited
+        self.map.entry(*pos).or_default().visited = true;
+
+        while let Some(dir) = directions.pop() {
+            let delta = dir.delta();
+            let next_pos = (pos.0 + delta.0, pos.1 + delta.1);
 
             if self.map.get(&next_pos).is_some_and(|n| n.visited) {
                 continue; // Already visited
             }
 
-            // Try to go in this direction
+            // Try to move in this direction
             if self.interactor.try_direction(dir) {
-                // Record connection in the map
+                // Update map with the connection
                 self.map
-                    .get_mut(&pos)
+                    .get_mut(pos)
                     .unwrap()
                     .neighbors
                     .insert(dir, next_pos);
@@ -88,22 +102,36 @@ impl Solver {
                     .entry(next_pos)
                     .or_default()
                     .neighbors
-                    .insert(dir.opposite(), pos);
+                    .insert(dir.opposite(), *pos);
 
-                // Walk to the new position
+                // Perform the move
                 self.interactor.walk(dir);
+                self.current_pos = next_pos;
 
-                // Recursively explore
-                self.explore(next_pos);
+                // Push new node onto the stack with all 4 directions
+                self.stack.push((next_pos, Direction::ALL.to_vec()));
 
-                // Backtrack
-                self.interactor.walk_back(dir.opposite());
+                return false; // only 1 move per step
             }
         }
-    }
 
-    fn start_explore(&mut self) {
-        self.explore((0, 0));
+        // No more directions to try — backtrack
+        self.stack.pop();
+
+        if let Some((parent_pos, _)) = self.stack.last() {
+            let back_dir = Direction::ALL.iter().find(|&&d| {
+                let delta = d.delta();
+                let candidate = (self.current_pos.0 + delta.0, self.current_pos.1 + delta.1);
+                candidate == *parent_pos
+            });
+
+            if let Some(dir) = back_dir {
+                self.interactor.walk(*dir);
+                self.current_pos = *parent_pos;
+            }
+        }
+
+        false // Backtracked, still not done
     }
 }
 
@@ -182,7 +210,8 @@ mod tests {
             0.into(),
             0.into(),
         )));
-        solver.start_explore();
+
+        while !solver.explore_step() {}
 
         assert_eq!(solver.map.len(), 8);
         assert!(solver.map.iter().all(|item| item.1.visited))
