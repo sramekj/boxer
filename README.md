@@ -15,6 +15,7 @@
 - automatically using hp pots on low health  
 - load custom rotations from .json files  
 - automatically go to town when inventory is full  
+- auto-explore of the map (togglable in a config - still kinda buggy, working on it...)  
 
 ### Tested classes (atm.)  
 - Enchanter  
@@ -27,7 +28,6 @@
 - auto level up  
 
 ### TODO (will do)
-- auto-explore  
 - eventually add support for more classes  
 
 ### Known issues
