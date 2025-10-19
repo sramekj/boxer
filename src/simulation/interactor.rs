@@ -26,6 +26,7 @@ pub trait Interactor {
     fn leave_to_town(&self) -> bool;
     fn try_direction(&self, direction: Direction) -> bool;
     fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool;
+    fn reset_position(&self);
 }
 
 impl Interactor for DebugObj {
@@ -102,14 +103,15 @@ impl Interactor for DebugObj {
     }
 
     fn walk(&self, direction: Option<Direction>, _: u64) -> bool {
-        println!(
-            "{}",
-            format!(
-                "Walking {}...",
-                direction.map_or_else(|| "".to_string(), |d| d.to_string())
-            )
-            .bright_yellow()
-        );
+        match direction {
+            Some(direction) => {
+                println!("{}", format!("Walking... {:?}", direction).bright_yellow());
+            }
+            None => {
+                println!("{}", "Walking...".bright_yellow());
+            }
+        }
+
         let delta = direction.unwrap().delta();
         self.position_x.store(
             self.position_x.load(Ordering::SeqCst) + delta.0,
@@ -126,11 +128,14 @@ impl Interactor for DebugObj {
         println!("New position: {:?}", new_position);
         let map = self.test_map.clone();
         let mut map = map.lock().unwrap();
-        if let Some(new_pos_node) = map.get(&new_position) {
-            let visited = new_pos_node.make_visited();
-            map.insert(new_position, visited);
-        }
+
+        map.entry(new_position).or_default().visited = true;
         true
+    }
+
+    fn reset_position(&self) {
+        self.position_x.store(0, Ordering::SeqCst);
+        self.position_y.store(0, Ordering::SeqCst);
     }
 }
 
@@ -222,7 +227,7 @@ impl Interactor for WindowObj {
         with_critical_section!(WAIT_TO_REGISTER_MS, {
             focus_window(self.hwnd).as_bool() && send_key_vk(direction.to_key()).is_ok()
         });
-        //thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(1000));
         let px_after = get_move_pixel(self.hwnd);
 
         let result = px_before != px_after;
@@ -239,18 +244,21 @@ impl Interactor for WindowObj {
     }
 
     fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool {
-        println!(
-            "{}",
-            format!(
-                "Walking {}...",
-                direction.map_or_else(|| "".to_string(), |d| d.to_string())
-            )
-            .bright_yellow()
-        );
+        match direction {
+            Some(direction) => {
+                println!("{}", format!("Walking... {:?}", direction).bright_yellow());
+            }
+            None => {
+                println!("{}", "Walking...".bright_yellow());
+            }
+        }
+
         let result = with_critical_section!(WAIT_TO_REGISTER_MS, {
             focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
         });
         thread::sleep(Duration::from_millis(walk_duration_ms));
         result
     }
+
+    fn reset_position(&self) {}
 }

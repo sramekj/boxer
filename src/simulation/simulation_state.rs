@@ -161,6 +161,7 @@ impl SimulationState {
             let need_reset_states = [CharState::InTown, CharState::Dead];
             if need_reset_states.contains(&prev_state) && !need_reset_states.contains(&state) {
                 self.skill_tracker.reset();
+                self.maze_solver.reset();
                 auto_attacking = false;
             }
 

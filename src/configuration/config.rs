@@ -77,7 +77,7 @@ impl Default for Config {
             frenzy_haste_percent: 41.9,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
-            walk_duration_ms: 5000,
+            walk_duration_ms: 3000,
             start_offset_ms: 100,
             leave_when_full: true,
             auto_explore: false,

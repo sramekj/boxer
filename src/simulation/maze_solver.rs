@@ -2,7 +2,6 @@ use crate::amtx;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::keys::{Key, WALK_DOWN, WALK_LEFT, WALK_RIGHT, WALK_UP};
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub type Pos = (i32, i32);
@@ -18,13 +17,6 @@ impl Node {
     pub fn new(visited: bool, neighbors: HashMap<Direction, Pos>) -> Self {
         Node { visited, neighbors }
     }
-
-    pub fn make_visited(&self) -> Self {
-        Node {
-            visited: true,
-            neighbors: self.neighbors.clone(),
-        }
-    }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
@@ -33,12 +25,6 @@ pub enum Direction {
     Right,
     Up,
     Down,
-}
-
-impl Display for Direction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 impl Direction {
@@ -153,6 +139,24 @@ impl Solver {
 
         false // Backtracked, still not done
     }
+
+    pub fn reset(&self) {
+        println!("Resetting position to (0, 0)");
+        self.interactor.reset_position();
+
+        let mut stack = self.stack.lock().unwrap();
+        let mut current_pos = self.current_pos.lock().unwrap();
+
+        stack.clear();
+        stack.push(((0, 0), Direction::ALL.to_vec()));
+        *current_pos = (0, 0);
+
+        let mut map = self.map.lock().unwrap();
+        for node in map.values_mut() {
+            node.visited = false;
+        }
+        map.entry((0, 0)).or_default().visited = true;
+    }
 }
 
 #[cfg(test)]
@@ -160,23 +164,72 @@ mod tests {
     use crate::amtx;
     use crate::simulation::char_state::CharState;
     use crate::simulation::maze_solver::Direction::*;
-    use crate::simulation::maze_solver::{Node, Solver};
+    use crate::simulation::maze_solver::{Node, Pos, Solver};
     use crate::simulation::simulation_state::DebugObj;
     use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn test_solver() {
-        // MAP: starting top left at (0, 0)
-        //
-        // A(0,0) - B(1,0) - C(2,0)
-        //          |        |
-        //          D(1,1) - E(2,1)
-        //          |        |
-        // F(0,2) - G(1,2) - H(2,2)
+        let test_map = generate_test_map();
 
-        let test_map = amtx!(HashMap::new());
+        let solver = Solver::new(Box::new(DebugObj::new(
+            CharState::InDungeon,
+            test_map.clone(),
+            0.into(),
+            0.into(),
+        )));
+
+        let mut counter = 0;
+        while !solver.explore_step(0) {
+            counter += 1;
+        }
+
+        println!("Solved in {} steps.", counter);
+
+        let result_map = solver.map.lock().unwrap();
+        assert_eq!(result_map.len(), 8);
+        assert!(result_map.iter().all(|item| item.1.visited))
+    }
+
+    #[test]
+    fn test_reset_solver() {
+        let test_map = generate_test_map();
+
+        let solver = Solver::new(Box::new(DebugObj::new(
+            CharState::InDungeon,
+            test_map.clone(),
+            0.into(),
+            0.into(),
+        )));
+
+        let mut counter = 0;
+        while !solver.explore_step(0) {
+            counter += 1;
+            if counter == 5 {
+                solver.reset();
+            }
+        }
+
+        println!("Solved in {} steps.", counter);
+
+        let result_map = solver.map.lock().unwrap();
+
+        assert_eq!(result_map.len(), 8);
+        assert!(result_map.iter().all(|item| item.1.visited))
+    }
+
+    // MAP: starting top left at (0, 0)
+    //
+    // A(0,0) - B(1,0) - C(2,0)
+    //          |        |
+    //          D(1,1) - E(2,1)
+    //          |        |
+    // F(0,2) - G(1,2) - H(2,2)
+    fn generate_test_map() -> Arc<Mutex<HashMap<Pos, Node>>> {
+        let map = amtx!(HashMap::new());
         {
-            let map = test_map.clone();
+            let map = map.clone();
             let mut map = map.lock().unwrap();
             //A node
             map.insert((0, 0), Node::new(true, HashMap::from([(Right, (1, 0))])));
@@ -225,17 +278,6 @@ mod tests {
                 Node::new(false, HashMap::from([(Up, (2, 1)), (Left, (1, 2))])),
             );
         }
-        let solver = Solver::new(Box::new(DebugObj::new(
-            CharState::InDungeon,
-            test_map.clone(),
-            0.into(),
-            0.into(),
-        )));
-
-        while !solver.explore_step(0) {}
-
-        let result_map = solver.map.lock().unwrap();
-        assert_eq!(result_map.len(), 8);
-        assert!(result_map.iter().all(|item| item.1.visited))
+        map
     }
 }
