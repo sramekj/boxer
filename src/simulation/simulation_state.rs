@@ -137,7 +137,7 @@ impl SimulationState {
         let is_running = self.is_running.clone();
         let is_enabled = self.is_enabled.clone();
         let mut auto_attacking = false;
-        let mut prev_state: CharState = CharState::InTown;
+        let mut prev_state: CharState = CharState::Unknown;
         while is_running.load(Ordering::SeqCst) {
             if !is_enabled.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
@@ -229,11 +229,16 @@ impl SimulationState {
                         self.do_rotation(state, state_check_at, skip_wait);
                     }
 
-                    if self.can_walk(state) {
-                        if self.left_combat(prev_state, state) {
-                            //let's wait a bit if we have just left the combat, otherwise the autowalk may not go off
-                            thread::sleep(Duration::from_millis(300));
-                        }
+                    //rotations and looting can take quite some time... lets update the state before moving
+                    let updated_state = if self.is_auto_explore_enabled() {
+                        self.state_checker.get_state(self.num_active_characters)
+                    } else {
+                        state
+                    };
+
+                    if self.can_walk(updated_state) {
+                        //let's wait a bit in case we have just left the combat or graphics did not load, otherwise the autowalk may not go off
+                        thread::sleep(Duration::from_millis(300));
                         //try to resume walking when in dungeon
                         self.interactor.walk(None, 0);
                         if self.has_recently_moved() {
@@ -247,7 +252,7 @@ impl SimulationState {
                         }
                     }
 
-                    if self.can_move_trigger(state) {
+                    if self.can_move_trigger() {
                         println!("Trying to auto-explore");
                         // trigger the move step only when stationary
                         let everything_explored =
@@ -267,14 +272,19 @@ impl SimulationState {
         }
     }
 
-    fn can_walk(&self, state: CharState) -> bool {
-        state == CharState::InDungeon && self.window_config.master && self.auto_explore
+    fn is_auto_explore_enabled(&self) -> bool {
+        self.window_config.master && self.auto_explore
     }
 
-    fn can_move_trigger(&self, state: CharState) -> bool {
-        (state == CharState::InDungeon || state == CharState::AtShrine)
-            && self.window_config.master
-            && self.auto_explore
+    fn can_walk(&self, state: CharState) -> bool {
+        state == CharState::InDungeon && self.is_auto_explore_enabled()
+    }
+
+    fn can_move_trigger(&self) -> bool {
+        // always take a fresh state when deciding if to move
+        let updated_state = self.state_checker.get_state(self.num_active_characters);
+        (updated_state == CharState::InDungeon || updated_state == CharState::AtShrine)
+            && self.is_auto_explore_enabled()
             && self.is_stationary()
     }
 

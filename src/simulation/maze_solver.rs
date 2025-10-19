@@ -141,7 +141,7 @@ impl Solver {
     }
 
     pub fn reset(&self) {
-        println!("Resetting position to (0, 0)");
+        println!("Resetting maze solver");
         self.interactor.reset_position();
 
         let mut stack = self.stack.lock().unwrap();
