@@ -249,7 +249,7 @@ impl Interactor for WindowObj {
                 println!("{}", format!("Walking... {:?}", direction).bright_yellow());
             }
             None => {
-                println!("{}", "Walking...".bright_yellow());
+                println!("{}", "Auto-walking".bright_yellow());
             }
         }
 

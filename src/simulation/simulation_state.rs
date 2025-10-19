@@ -188,9 +188,7 @@ impl SimulationState {
                         self.shared_state.set_full_inventory(false);
                     }
 
-                    if state == CharState::AtShrine && self.interactor.interact() {
-                        println!("Interacted with a shrine");
-                    }
+                    self.loot_shrine(state);
 
                     if state == CharState::Looting && !self.state_checker.is_inventory_full() {
                         println!("Initiate looting...");
@@ -238,7 +236,7 @@ impl SimulationState {
 
                     if self.can_walk(updated_state) {
                         //let's wait a bit in case we have just left the combat or graphics did not load, otherwise the autowalk may not go off
-                        thread::sleep(Duration::from_millis(300));
+                        thread::sleep(Duration::from_millis(500));
                         //try to resume walking when in dungeon
                         self.interactor.walk(None, 0);
                         if self.has_recently_moved() {
@@ -250,6 +248,7 @@ impl SimulationState {
                                 thread::sleep(Duration::from_millis(300));
                             }
                         }
+                        skip_wait = true;
                     }
 
                     if self.can_move_trigger() {
@@ -272,6 +271,12 @@ impl SimulationState {
         }
     }
 
+    fn loot_shrine(&self, state: CharState) {
+        if state == CharState::AtShrine && self.interactor.interact() {
+            println!("Interacted with a shrine");
+        }
+    }
+
     fn is_auto_explore_enabled(&self) -> bool {
         self.window_config.master && self.auto_explore
     }
@@ -282,10 +287,21 @@ impl SimulationState {
 
     fn can_move_trigger(&self) -> bool {
         // always take a fresh state when deciding if to move
-        let updated_state = self.state_checker.get_state(self.num_active_characters);
-        (updated_state == CharState::InDungeon || updated_state == CharState::AtShrine)
+        let mut updated_state = self.state_checker.get_state(self.num_active_characters);
+        if (updated_state == CharState::InDungeon || updated_state == CharState::AtShrine)
             && self.is_auto_explore_enabled()
             && self.is_stationary()
+        {
+            // let's make really sure we are still in a dungeon and not fighting... this crap is not very reliable and will screw with a maze map
+            thread::sleep(Duration::from_millis(200));
+            updated_state = self.state_checker.get_state(self.num_active_characters);
+            if updated_state == CharState::InDungeon || updated_state == CharState::AtShrine {
+                // let's not forget to loot a shrine if it is there
+                self.loot_shrine(updated_state);
+                return true;
+            }
+        }
+        false
     }
 
     fn has_recently_moved(&self) -> bool {
