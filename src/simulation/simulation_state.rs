@@ -224,56 +224,7 @@ impl SimulationState {
                         self.do_rotation(state, state_check_at, skip_wait);
                     }
 
-                    //rotations and looting can take quite some time... lets update the state before moving
-                    let updated_state = if self.is_auto_explore_enabled() {
-                        self.state_checker.get_state(self.num_active_characters)
-                    } else {
-                        state
-                    };
-
-                    if self.can_walk(updated_state) {
-                        //let's wait a bit in case we have just left the combat or graphics did not load, otherwise the autowalk may not go off
-                        thread::sleep(Duration::from_millis(500));
-                        //try to resume walking when in dungeon
-                        self.interactor.walk(None);
-                        thread::sleep(Duration::from_millis(100));
-                        if self.has_recently_moved() {
-                            //let's move until we are stationary
-                            loop {
-                                if self.is_stationary() {
-                                    break;
-                                }
-                                thread::sleep(Duration::from_millis(300));
-                            }
-                        }
-                        skip_wait = true;
-                    }
-
-                    //rotations and looting can take quite some time... lets update the state before moving
-                    let updated_state = if self.is_auto_explore_enabled() {
-                        self.state_checker.get_state(self.num_active_characters)
-                    } else {
-                        state
-                    };
-
-                    if self.can_move_trigger(updated_state) {
-                        println!("Trying to auto-explore");
-                        // trigger the move step only when stationary
-                        let everything_explored = self.maze_solver.explore_step();
-                        if everything_explored {
-                            println!("Everything explored");
-                            self.interactor.leave_to_town();
-                        }
-                        thread::sleep(Duration::from_millis(100));
-                        if self.has_recently_moved() {
-                            //let's move until we are stationary
-                            loop {
-                                if self.is_stationary() {
-                                    break;
-                                }
-                                thread::sleep(Duration::from_millis(300));
-                            }
-                        }
+                    if self.process_movement() {
                         skip_wait = true;
                     }
                 }
@@ -284,6 +235,55 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
         }
+    }
+
+    fn process_movement(&self) -> bool {
+        if self.is_auto_explore_enabled() {
+            //rotations and looting can take quite some time... lets update the state before moving
+            let updated_state = self.state_checker.get_state(self.num_active_characters);
+            if self.can_walk(updated_state) {
+                //let's wait a bit in case we have just left the combat or graphics did not load, otherwise the autowalk may not go off
+                thread::sleep(Duration::from_millis(500));
+                //try to resume walking when in dungeon
+                self.interactor.walk(None);
+                thread::sleep(Duration::from_millis(100));
+                if self.has_recently_moved() {
+                    //let's move until we are stationary
+                    loop {
+                        if self.is_stationary() {
+                            println!("Just stopped...");
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(300));
+                    }
+                }
+            }
+
+            //rotations and looting can take quite some time... lets update the state before moving
+            let updated_state = self.state_checker.get_state(self.num_active_characters);
+            if self.can_move_trigger(updated_state) {
+                println!("Trying to auto-explore");
+                // trigger the move step only when stationary
+                let everything_explored = self.maze_solver.explore_step();
+                if everything_explored {
+                    println!("Everything explored");
+                    self.interactor.leave_to_town();
+                }
+                thread::sleep(Duration::from_millis(100));
+                if self.has_recently_moved() {
+                    //let's move until we are stationary
+                    loop {
+                        if self.is_stationary() {
+                            println!("Just stopped...");
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(300));
+                    }
+                }
+            }
+            return true;
+        }
+        false
     }
 
     fn loot_shrine(&self, state: CharState) {
