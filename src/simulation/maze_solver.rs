@@ -146,15 +146,13 @@ impl Solver {
 
         let mut stack = self.stack.lock().unwrap();
         let mut current_pos = self.current_pos.lock().unwrap();
+        let mut map = self.map.lock().unwrap();
 
         stack.clear();
         stack.push(((0, 0), Direction::ALL.to_vec()));
         *current_pos = (0, 0);
 
-        let mut map = self.map.lock().unwrap();
-        for node in map.values_mut() {
-            node.visited = false;
-        }
+        map.clear();
         map.entry((0, 0)).or_default().visited = true;
     }
 }
