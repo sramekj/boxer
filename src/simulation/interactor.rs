@@ -25,7 +25,7 @@ pub trait Interactor {
     fn inventory_toggle(&self) -> bool;
     fn leave_to_town(&self) -> bool;
     fn try_direction(&self, direction: Direction) -> bool;
-    fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool;
+    fn walk(&self, direction: Option<Direction>) -> bool;
     fn reset_position(&self);
 }
 
@@ -102,7 +102,7 @@ impl Interactor for DebugObj {
         result
     }
 
-    fn walk(&self, direction: Option<Direction>, _: u64) -> bool {
+    fn walk(&self, direction: Option<Direction>) -> bool {
         match direction {
             Some(direction) => {
                 println!("{}", format!("Walking... {:?}", direction).bright_yellow());
@@ -243,7 +243,7 @@ impl Interactor for WindowObj {
         result
     }
 
-    fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool {
+    fn walk(&self, direction: Option<Direction>) -> bool {
         match direction {
             Some(direction) => {
                 println!("{}", format!("Walking... {:?}", direction).bright_yellow());
@@ -253,16 +253,14 @@ impl Interactor for WindowObj {
             }
         }
 
-        let result = with_critical_section!(WAIT_TO_REGISTER_MS, {
+        with_critical_section!(WAIT_TO_REGISTER_MS, {
             let focused = focus_window(self.hwnd).as_bool();
             if let Some(direction) = direction {
                 _ = send_key_vk(direction.to_key());
                 thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
             }
             focused && send_key_vk(AUTO_WALK).is_ok()
-        });
-        thread::sleep(Duration::from_millis(walk_duration_ms));
-        result
+        })
     }
 
     fn reset_position(&self) {}

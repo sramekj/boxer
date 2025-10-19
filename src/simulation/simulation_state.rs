@@ -57,7 +57,6 @@ pub struct SimulationState {
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
-    pub walk_duration_ms: u64,
     pub num_active_characters: usize,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
@@ -75,7 +74,6 @@ impl SimulationState {
     pub fn new(
         sync_interval_ms: u64,
         cast_leeway_ms: u64,
-        walk_duration_ms: u64,
         num_active_characters: usize,
         window_config: WindowConfig,
         rotation: Rotation,
@@ -91,7 +89,6 @@ impl SimulationState {
             is_enabled: Arc::new(AtomicBool::new(false)),
             sync_interval_ms,
             cast_leeway_ms,
-            walk_duration_ms,
             num_active_characters,
             window_config: window_config.clone(),
             rotation,
@@ -238,7 +235,8 @@ impl SimulationState {
                         //let's wait a bit in case we have just left the combat or graphics did not load, otherwise the autowalk may not go off
                         thread::sleep(Duration::from_millis(500));
                         //try to resume walking when in dungeon
-                        self.interactor.walk(None, 0);
+                        self.interactor.walk(None);
+                        thread::sleep(Duration::from_millis(100));
                         if self.has_recently_moved() {
                             //let's move until we are stationary
                             loop {
@@ -251,15 +249,32 @@ impl SimulationState {
                         skip_wait = true;
                     }
 
-                    if self.can_move_trigger() {
+                    //rotations and looting can take quite some time... lets update the state before moving
+                    let updated_state = if self.is_auto_explore_enabled() {
+                        self.state_checker.get_state(self.num_active_characters)
+                    } else {
+                        state
+                    };
+
+                    if self.can_move_trigger(updated_state) {
                         println!("Trying to auto-explore");
                         // trigger the move step only when stationary
-                        let everything_explored =
-                            self.maze_solver.explore_step(self.walk_duration_ms);
+                        let everything_explored = self.maze_solver.explore_step();
                         if everything_explored {
                             println!("Everything explored");
                             self.interactor.leave_to_town();
                         }
+                        thread::sleep(Duration::from_millis(100));
+                        if self.has_recently_moved() {
+                            //let's move until we are stationary
+                            loop {
+                                if self.is_stationary() {
+                                    break;
+                                }
+                                thread::sleep(Duration::from_millis(300));
+                            }
+                        }
+                        skip_wait = true;
                     }
                 }
             }
@@ -285,16 +300,15 @@ impl SimulationState {
         state == CharState::InDungeon && self.is_auto_explore_enabled()
     }
 
-    fn can_move_trigger(&self) -> bool {
+    fn can_move_trigger(&self, state: CharState) -> bool {
         // always take a fresh state when deciding if to move
-        let mut updated_state = self.state_checker.get_state(self.num_active_characters);
-        if (updated_state == CharState::InDungeon || updated_state == CharState::AtShrine)
+        if (state == CharState::InDungeon || state == CharState::AtShrine)
             && self.is_auto_explore_enabled()
             && self.is_stationary()
         {
             // let's make really sure we are still in a dungeon and not fighting... this crap is not very reliable and will screw with a maze map
             thread::sleep(Duration::from_millis(200));
-            updated_state = self.state_checker.get_state(self.num_active_characters);
+            let updated_state = self.state_checker.get_state(self.num_active_characters);
             if updated_state == CharState::InDungeon || updated_state == CharState::AtShrine {
                 // let's not forget to loot a shrine if it is there
                 self.loot_shrine(updated_state);
@@ -483,7 +497,6 @@ mod tests {
 
         let simulation = SimulationState::new(
             cfg.sync_interval_ms,
-            0,
             0,
             1,
             cfg.windows.first().unwrap().clone(),

@@ -79,7 +79,7 @@ impl Solver {
         }
     }
 
-    pub fn explore_step(&self, walk_duration_ms: u64) -> bool {
+    pub fn explore_step(&self) -> bool {
         let mut stack = self.stack.lock().unwrap();
         let mut map = self.map.lock().unwrap();
         let mut current_pos = self.current_pos.lock().unwrap();
@@ -111,7 +111,7 @@ impl Solver {
                     .insert(dir.opposite(), *pos);
 
                 // Perform the move
-                self.interactor.walk(Some(dir), walk_duration_ms);
+                self.interactor.walk(Some(dir));
                 *current_pos = next_pos;
 
                 // Push new node onto the stack with all 4 directions
@@ -132,7 +132,7 @@ impl Solver {
             });
 
             if let Some(dir) = back_dir {
-                self.interactor.walk(Some(*dir), walk_duration_ms);
+                self.interactor.walk(Some(*dir));
                 *current_pos = *parent_pos;
             }
         }
@@ -179,7 +179,7 @@ mod tests {
         )));
 
         let mut counter = 0;
-        while !solver.explore_step(0) {
+        while !solver.explore_step() {
             counter += 1;
         }
 
@@ -202,7 +202,7 @@ mod tests {
         )));
 
         let mut counter = 0;
-        while !solver.explore_step(0) {
+        while !solver.explore_step() {
             counter += 1;
             if counter == 5 {
                 solver.reset();

@@ -144,7 +144,6 @@ fn main() -> windows::core::Result<()> {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
                 cfg.cast_leeway_ms,
-                cfg.walk_duration_ms,
                 num_windows,
                 active_window,
                 rotation,
@@ -174,7 +173,6 @@ fn main() -> windows::core::Result<()> {
             Arc::new(SimulationState::new(
                 cfg.sync_interval_ms,
                 cfg.cast_leeway_ms,
-                cfg.walk_duration_ms,
                 num_windows,
                 active_window,
                 rotation,
