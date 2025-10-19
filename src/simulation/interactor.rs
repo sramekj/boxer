@@ -25,7 +25,7 @@ pub trait Interactor {
     fn inventory_toggle(&self) -> bool;
     fn leave_to_town(&self) -> bool;
     fn try_direction(&self, direction: Direction) -> bool;
-    fn walk(&self, direction: Direction) -> bool;
+    fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool;
 }
 
 impl Interactor for DebugObj {
@@ -101,9 +101,16 @@ impl Interactor for DebugObj {
         result
     }
 
-    fn walk(&self, direction: Direction) -> bool {
-        println!("{}", format!("Walking {:?}...", direction).bright_yellow());
-        let delta = direction.delta();
+    fn walk(&self, direction: Option<Direction>, _: u64) -> bool {
+        println!(
+            "{}",
+            format!(
+                "Walking {}...",
+                direction.map_or_else(|| "".to_string(), |d| d.to_string())
+            )
+            .bright_yellow()
+        );
+        let delta = direction.unwrap().delta();
         self.position_x.store(
             self.position_x.load(Ordering::SeqCst) + delta.0,
             Ordering::SeqCst,
@@ -231,10 +238,19 @@ impl Interactor for WindowObj {
         result
     }
 
-    fn walk(&self, direction: Direction) -> bool {
-        println!("{}", format!("Walking {:?}...", direction).bright_yellow());
-        with_critical_section!(WAIT_TO_REGISTER_MS, {
+    fn walk(&self, direction: Option<Direction>, walk_duration_ms: u64) -> bool {
+        println!(
+            "{}",
+            format!(
+                "Walking {}...",
+                direction.map_or_else(|| "".to_string(), |d| d.to_string())
+            )
+            .bright_yellow()
+        );
+        let result = with_critical_section!(WAIT_TO_REGISTER_MS, {
             focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
-        })
+        });
+        thread::sleep(Duration::from_millis(walk_duration_ms));
+        result
     }
 }

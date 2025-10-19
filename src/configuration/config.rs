@@ -63,6 +63,7 @@ pub struct Config {
     pub frenzy_haste_percent: f32,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
+    pub walk_duration_ms: u64,
     pub start_offset_ms: u64,
     pub leave_when_full: bool,
     pub auto_explore: bool,
@@ -76,9 +77,10 @@ impl Default for Config {
             frenzy_haste_percent: 41.9,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
+            walk_duration_ms: 5000,
             start_offset_ms: 100,
             leave_when_full: true,
-            auto_explore: true,
+            auto_explore: false,
             windows: vec![
                 WindowConfig {
                     title: Some("[#] [Steam1] Nevergrind [#]".into()),

@@ -2,6 +2,7 @@ use crate::amtx;
 use crate::simulation::interactor::Interactor;
 use crate::simulation::keys::{Key, WALK_DOWN, WALK_LEFT, WALK_RIGHT, WALK_UP};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub type Pos = (i32, i32);
@@ -32,6 +33,12 @@ pub enum Direction {
     Right,
     Up,
     Down,
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl Direction {
@@ -86,7 +93,7 @@ impl Solver {
         }
     }
 
-    pub fn explore_step(&self) -> bool {
+    pub fn explore_step(&self, walk_duration_ms: u64) -> bool {
         let mut stack = self.stack.lock().unwrap();
         let mut map = self.map.lock().unwrap();
         let mut current_pos = self.current_pos.lock().unwrap();
@@ -118,7 +125,7 @@ impl Solver {
                     .insert(dir.opposite(), *pos);
 
                 // Perform the move
-                self.interactor.walk(dir);
+                self.interactor.walk(Some(dir), walk_duration_ms);
                 *current_pos = next_pos;
 
                 // Push new node onto the stack with all 4 directions
@@ -139,7 +146,7 @@ impl Solver {
             });
 
             if let Some(dir) = back_dir {
-                self.interactor.walk(*dir);
+                self.interactor.walk(Some(*dir), walk_duration_ms);
                 *current_pos = *parent_pos;
             }
         }
@@ -225,7 +232,7 @@ mod tests {
             0.into(),
         )));
 
-        while !solver.explore_step() {}
+        while !solver.explore_step(0) {}
 
         let result_map = solver.map.lock().unwrap();
         assert_eq!(result_map.len(), 8);

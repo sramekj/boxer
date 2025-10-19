@@ -8,7 +8,7 @@ use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
 use crate::simulation::skill_tracker::SkillTrackerHandle;
-use crate::simulation::state_checker::StateChecker;
+use crate::simulation::state_checker::{StateChecker, get_move_pixel};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
@@ -57,6 +57,7 @@ pub struct SimulationState {
     pub is_enabled: Arc<AtomicBool>,
     pub sync_interval_ms: u64,
     pub cast_leeway_ms: u64,
+    pub walk_duration_ms: u64,
     pub num_active_characters: usize,
     pub window_config: WindowConfig,
     pub rotation: Rotation,
@@ -73,6 +74,7 @@ impl SimulationState {
     pub fn new(
         sync_interval_ms: u64,
         cast_leeway_ms: u64,
+        walk_duration_ms: u64,
         num_active_characters: usize,
         window_config: WindowConfig,
         rotation: Rotation,
@@ -88,6 +90,7 @@ impl SimulationState {
             is_enabled: Arc::new(AtomicBool::new(false)),
             sync_interval_ms,
             cast_leeway_ms,
+            walk_duration_ms,
             num_active_characters,
             window_config: window_config.clone(),
             rotation,
@@ -188,19 +191,10 @@ impl SimulationState {
                         self.shared_state.set_full_inventory(false);
                     }
 
-                    if state == CharState::InDungeon && self.is_master() && self.auto_explore {
-                        println!("Trying to auto-explore");
-                        //TODO: investigate what happens if interrupted by fight
-                        let everything_explored = self.maze_solver.explore_step();
-                        if everything_explored {
-                            println!("Everything explored");
-                            self.interactor.leave_to_town();
-                        }
-                    }
-
                     if state == CharState::AtShrine && self.interactor.interact() {
                         println!("Interacted with a shrine");
                     }
+
                     if state == CharState::Looting && !self.state_checker.is_inventory_full() {
                         println!("Initiate looting...");
                         let mut loot_counter = 0;
@@ -222,6 +216,7 @@ impl SimulationState {
                             }
                         }
                     }
+
                     if [CharState::Fighting, CharState::InDungeon].contains(&state) {
                         if self.entered_combat(prev_state, state) {
                             //wait if we have just started fighting... otherwise the first cast may not go off
@@ -236,6 +231,17 @@ impl SimulationState {
 
                         self.do_rotation(state, state_check_at, skip_wait);
                     }
+
+                    if self.can_move(state) && self.is_stationary() {
+                        println!("Trying to auto-explore");
+                        //TODO: investigate what happens if interrupted by fight
+                        let everything_explored =
+                            self.maze_solver.explore_step(self.walk_duration_ms);
+                        if everything_explored {
+                            println!("Everything explored");
+                            self.interactor.leave_to_town();
+                        }
+                    }
                 }
             }
             prev_state = state;
@@ -244,6 +250,19 @@ impl SimulationState {
                 thread::sleep(Duration::from_millis(self.sync_interval_ms));
             }
         }
+    }
+
+    fn can_move(&self, state: CharState) -> bool {
+        (state == CharState::InDungeon || state == CharState::AtShrine)
+            && self.is_master()
+            && self.auto_explore
+    }
+
+    fn is_stationary(&self) -> bool {
+        let px_before = get_move_pixel(self.window_config.hwnd);
+        self.interactor.walk(None, 100);
+        let px_after = get_move_pixel(self.window_config.hwnd);
+        px_before == px_after
     }
 
     fn entered_combat(&self, prev_state: CharState, state: CharState) -> bool {
@@ -414,6 +433,7 @@ mod tests {
 
         let simulation = SimulationState::new(
             cfg.sync_interval_ms,
+            0,
             0,
             1,
             cfg.windows.first().unwrap().clone(),
