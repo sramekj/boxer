@@ -17,6 +17,7 @@ const HP_POT_KEY: &str = "hp-potion";
 // we want to reapply buffs/debuffs before they drop down
 const BUFF_DURATION_TOLERANCE_SEC: f32 = 3.0;
 const DEBUFF_DURATION_TOLERANCE_SEC: f32 = 1.0;
+pub const DEBUG_COOLDOWNS: bool = false;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -43,12 +44,14 @@ struct SkillTrackerActor {
     potion_tracker: HashMap<String, Instant>,
     shared_state: Arc<SharedStateHandle>,
     receiver: Receiver<SkillTrackerMessage>,
+    debug: bool,
 }
 
 impl SkillTrackerActor {
     pub fn new(
         shared_state: Arc<SharedStateHandle>,
         receiver: Receiver<SkillTrackerMessage>,
+        debug: bool,
     ) -> SkillTrackerActor {
         SkillTrackerActor {
             last_cast: HashMap::new(),
@@ -57,6 +60,7 @@ impl SkillTrackerActor {
             potion_tracker: HashMap::new(),
             shared_state,
             receiver,
+            debug,
         }
     }
 
@@ -127,7 +131,9 @@ impl SkillTrackerActor {
                 return;
             }
         }
-        println!("Tracking skill: {}", skill.name);
+        if self.debug {
+            println!("Tracking skill: {}", skill.name);
+        }
         self.last_cast.insert(skill.name.clone(), now);
         match skill.skill_type {
             SkillType::Buff => {
@@ -177,25 +183,27 @@ impl SkillTrackerActor {
         let is_on_cooldown = self.is_on_cooldown(skill, reductions);
         let can_cast = skill.can_cast(state);
         let result = !is_on_cooldown && can_cast;
-        println!(
-            "Checking ability: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
-            skill.name,
-            if is_on_cooldown {
-                is_on_cooldown.to_string().red()
-            } else {
-                is_on_cooldown.to_string().green()
-            },
-            if can_cast {
-                can_cast.to_string().green()
-            } else {
-                can_cast.to_string().red()
-            },
-            if result {
-                result.to_string().green()
-            } else {
-                result.to_string().red()
-            }
-        );
+        if self.debug {
+            println!(
+                "Checking ability: {}. Is on cooldown: {}. Can cast: {}. Result: {}.",
+                skill.name,
+                if is_on_cooldown {
+                    is_on_cooldown.to_string().red()
+                } else {
+                    is_on_cooldown.to_string().green()
+                },
+                if can_cast {
+                    can_cast.to_string().green()
+                } else {
+                    can_cast.to_string().red()
+                },
+                if result {
+                    result.to_string().green()
+                } else {
+                    result.to_string().red()
+                }
+            );
+        }
         result
     }
 
@@ -214,8 +222,10 @@ impl SkillTrackerActor {
                     } else if skill.name == "Frenzy" {
                         self.shared_state.set_frenzy_applied(false);
                     }
-                    println!("{}", format!("Buff {} expired", skill.name).yellow());
-                } else {
+                    if self.debug {
+                        println!("{}", format!("Buff {} expired", skill.name).yellow());
+                    }
+                } else if self.debug {
                     println!(
                         "{}",
                         format!("Buff {} is still applied", skill.name).bright_green()
@@ -226,8 +236,10 @@ impl SkillTrackerActor {
             SkillType::Debuff => {
                 let result = !self.has_debuff_applied(skill);
                 if result {
-                    println!("{}", format!("Debuff {} expired", skill.name).yellow());
-                } else {
+                    if self.debug {
+                        println!("{}", format!("Debuff {} expired", skill.name).yellow());
+                    }
+                } else if self.debug {
                     println!(
                         "{}",
                         format!("Debuff {} is still applied", skill.name).bright_green()
@@ -286,9 +298,9 @@ pub struct SkillTrackerHandle {
 }
 
 impl SkillTrackerHandle {
-    pub fn new(shared_state_handle: Arc<SharedStateHandle>) -> Self {
+    pub fn new(shared_state_handle: Arc<SharedStateHandle>, debug: bool) -> Self {
         let (tx, rx) = mpsc::channel();
-        let actor = SkillTrackerActor::new(shared_state_handle, rx);
+        let actor = SkillTrackerActor::new(shared_state_handle, rx, debug);
         println!("Starting {}", type_of(&actor));
         thread::spawn(move || {
             if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| actor.run())) {
@@ -321,15 +333,6 @@ impl SkillTrackerHandle {
         self.ask(IsHpPotOnCooldown)
     }
 
-    pub fn can_cast(
-        &self,
-        skill: &Skill,
-        reductions: Option<&Vec<(String, f32)>>,
-        state: CharState,
-    ) -> bool {
-        self.ask(|tx| CanCast(skill.clone(), reductions.cloned(), state, tx))
-    }
-
     pub fn should_cast(
         &self,
         skill: &Skill,
@@ -343,10 +346,12 @@ impl SkillTrackerHandle {
         self.ask(|tx| TrackCast(skill.clone(), reductions.cloned(), tx))
     }
 
+    #[cfg(test)]
     pub fn is_on_cooldown(&self, skill: &Skill, reductions: Option<&Vec<(String, f32)>>) -> bool {
         self.ask(|tx| IsOnCooldown(skill.clone(), reductions.cloned(), tx))
     }
 
+    #[cfg(test)]
     pub fn stop(&self) {
         let (tx, _) = mpsc::channel();
         let _ = self.sender.send(Stop(tx));
@@ -370,8 +375,8 @@ mod tests {
         }));
 
         let shared_state = Arc::new(SharedStateHandle::new(1.0, 1.0));
-        let h1 = SkillTrackerHandle::new(shared_state.clone());
-        let h2 = SkillTrackerHandle::new(shared_state.clone());
+        let h1 = SkillTrackerHandle::new(shared_state.clone(), true);
+        let h2 = SkillTrackerHandle::new(shared_state.clone(), true);
         let skill = Skill {
             name: "Color Shift".to_string(),
             key: SKILL_BUTTON_2,

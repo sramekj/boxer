@@ -7,7 +7,7 @@ use crate::simulation::maze_solver::{Node, Pos, Solver};
 use crate::simulation::rotation::Rotation;
 use crate::simulation::shared_state::SharedStateHandle;
 use crate::simulation::skill::Skill;
-use crate::simulation::skill_tracker::SkillTrackerHandle;
+use crate::simulation::skill_tracker::{DEBUG_COOLDOWNS, SkillTrackerHandle};
 use crate::simulation::state_checker::{StateChecker, get_move_pixel};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
@@ -71,6 +71,7 @@ pub struct SimulationState {
 }
 
 impl SimulationState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sync_interval_ms: u64,
         cast_leeway_ms: u64,
@@ -96,17 +97,12 @@ impl SimulationState {
             rotation,
             leave_when_full,
             auto_explore,
-            skill_tracker: SkillTrackerHandle::new(shared_state.clone()),
+            skill_tracker: SkillTrackerHandle::new(shared_state.clone(), DEBUG_COOLDOWNS),
             interactor: skill_caster,
             state_checker,
             shared_state,
             maze_solver,
         }
-    }
-
-    pub fn is_master(&self) -> bool {
-        //always a master if playing alone...
-        self.window_config.master || self.num_active_characters == 1
     }
 
     pub fn debug_checker(&self) {
@@ -183,7 +179,7 @@ impl SimulationState {
                     if state == CharState::InDungeon
                         && self.shared_state.get_full_inventory()
                         //only master can leave dungeon
-                        && self.is_master()
+                        && self.window_config.master
                         && self.leave_when_full
                         && self.interactor.leave_to_town()
                     {
@@ -233,9 +229,27 @@ impl SimulationState {
                         self.do_rotation(state, state_check_at, skip_wait);
                     }
 
-                    if self.can_move(state) && self.is_stationary() {
+                    if self.can_walk(state) {
+                        if self.left_combat(prev_state, state) {
+                            //let's wait a bit if we have just left the combat, otherwise the autowalk may not go off
+                            thread::sleep(Duration::from_millis(300));
+                        }
+                        //try to resume walking when in dungeon
+                        self.interactor.walk(None, 0);
+                        if self.has_recently_moved() {
+                            //let's move until we are stationary
+                            loop {
+                                if self.is_stationary() {
+                                    break;
+                                }
+                                thread::sleep(Duration::from_millis(300));
+                            }
+                        }
+                    }
+
+                    if self.can_move_trigger(state) {
                         println!("Trying to auto-explore");
-                        //TODO: investigate what happens if interrupted by fight
+                        // trigger the move step only when stationary
                         let everything_explored =
                             self.maze_solver.explore_step(self.walk_duration_ms);
                         if everything_explored {
@@ -253,17 +267,26 @@ impl SimulationState {
         }
     }
 
-    fn can_move(&self, state: CharState) -> bool {
+    fn can_walk(&self, state: CharState) -> bool {
+        state == CharState::InDungeon && self.window_config.master && self.auto_explore
+    }
+
+    fn can_move_trigger(&self, state: CharState) -> bool {
         (state == CharState::InDungeon || state == CharState::AtShrine)
-            && self.is_master()
+            && self.window_config.master
             && self.auto_explore
+            && self.is_stationary()
+    }
+
+    fn has_recently_moved(&self) -> bool {
+        let px_before = get_move_pixel(self.window_config.hwnd);
+        thread::sleep(Duration::from_millis(100));
+        let px_after = get_move_pixel(self.window_config.hwnd);
+        px_after != px_before
     }
 
     fn is_stationary(&self) -> bool {
-        let px_before = get_move_pixel(self.window_config.hwnd);
-        self.interactor.walk(None, 100);
-        let px_after = get_move_pixel(self.window_config.hwnd);
-        px_before == px_after
+        !self.has_recently_moved()
     }
 
     fn entered_combat(&self, prev_state: CharState, state: CharState) -> bool {

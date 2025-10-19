@@ -254,7 +254,12 @@ impl Interactor for WindowObj {
         }
 
         let result = with_critical_section!(WAIT_TO_REGISTER_MS, {
-            focus_window(self.hwnd).as_bool() && send_key_vk(AUTO_WALK).is_ok()
+            let focused = focus_window(self.hwnd).as_bool();
+            if let Some(direction) = direction {
+                _ = send_key_vk(direction.to_key());
+                thread::sleep(Duration::from_millis(WAIT_TO_REGISTER_MS));
+            }
+            focused && send_key_vk(AUTO_WALK).is_ok()
         });
         thread::sleep(Duration::from_millis(walk_duration_ms));
         result
