@@ -168,7 +168,10 @@ impl SimulationState {
                         self.skill_tracker.reset_debuffs();
                     }
 
-                    if state == CharState::InDungeon && self.state_checker.is_inventory_full() {
+                    if state == CharState::InDungeon
+                        && self.state_checker.is_inventory_opened()
+                        && self.state_checker.is_inventory_full()
+                    {
                         self.shared_state.set_full_inventory(true);
                     }
 
