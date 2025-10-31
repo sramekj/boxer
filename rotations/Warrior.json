@@ -14,7 +14,7 @@
       "key": 53,
       "cast_time": 0.0,
       "cooldown": 60.0,
-      "buff_duration": 39.5,
+      "buff_duration": 46.4,
       "debuff_duration": null,
       "skill_type": "Buff"
     },
@@ -23,7 +23,7 @@
       "key": 189,
       "cast_time": 0.0,
       "cooldown": 40.0,
-      "buff_duration": 16.3,
+      "buff_duration": 18.4,
       "debuff_duration": null,
       "skill_type": "Buff"
     },
