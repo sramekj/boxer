@@ -21,7 +21,7 @@
     {
       "name": "Clarity",
       "key": 189,
-      "cast_time": 3.00,
+      "cast_time": 3.50,
       "cooldown": 0.0,
       "buff_duration": 720.0,
       "debuff_duration": null,

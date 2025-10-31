@@ -72,12 +72,12 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            skill_haste_percent: 39.0,
-            frenzy_haste_percent: 41.9,
+            skill_haste_percent: 40.0,
+            frenzy_haste_percent: 46.7,
             sync_interval_ms: 500,
             cast_leeway_ms: 0,
             start_offset_ms: 100,
-            leave_when_full: true,
+            leave_when_full: false,
             auto_explore: false,
             windows: vec![
                 WindowConfig {
@@ -93,7 +93,7 @@ impl Default for Config {
                         Class::Enchanter,
                         Some(vec!["Clarity".to_string()]),
                         None,
-                        Some(vec![("Enthrall".to_string(), 42.9)]),
+                        Some(vec![("Enthrall".to_string(), 57.0)]),
                         None,
                         get_default_loot_filter(),
                         AutoAttack::Primary,
@@ -112,8 +112,8 @@ impl Default for Config {
                         Class::Warlock,
                         None,
                         Some(vec!["Engulfing Darkness".to_string()]),
-                        Some(vec![("Engulfing Darkness".to_string(), 87.9)]),
-                        None,
+                        Some(vec![("Engulfing Darkness".to_string(), 87.3), ("Icing Death".to_string(), 57.1)]),
+                        Some(vec![("Icing Death".to_string(), 32.4)]),
                         get_default_loot_filter(),
                         AutoAttack::Primary,
                     ),
