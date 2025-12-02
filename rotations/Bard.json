@@ -1,0 +1,85 @@
+{
+  "skills": [
+    {
+      "name": "Militant Cadence",
+      "key": 56,
+      "cast_time": 3.0,
+      "cooldown": 80.0,
+      "buff_duration": 90.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Battle Hymn",
+      "key": 57,
+      "cast_time": 3.0,
+      "cooldown": 25.0,
+      "buff_duration": 30.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Chromatic Sonata",
+      "key": 48,
+      "cast_time": 3.0,
+      "cooldown": 35.0,
+      "buff_duration": 45.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Melody of Mana",
+      "key": 189,
+      "cast_time": 3.0,
+      "cooldown": 35.0,
+      "buff_duration": 45.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Litany of Life",
+      "key": 187,
+      "cast_time": 3.0,
+      "cooldown": 35.0,
+      "buff_duration": 45.0,
+      "debuff_duration": null,
+      "skill_type": "Buff"
+    },
+    {
+      "name": "Righteous Rhapsody",
+      "key": 49,
+      "cast_time": 3.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": 45.0,
+      "skill_type": "Debuff"
+    },
+    {
+      "name": "Sonic Boom",
+      "key": 50,
+      "cast_time": 2.0,
+      "cooldown": 16.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    },
+    {
+      "name": "Subverted Symphony",
+      "key": 51,
+      "cast_time": 3.0,
+      "cooldown": 0.0,
+      "buff_duration": null,
+      "debuff_duration": 24.0,
+      "skill_type": "Debuff"
+    },
+    {
+      "name": "Crashing Chords",
+      "key": 52,
+      "cast_time": 3.0,
+      "cooldown": 30.0,
+      "buff_duration": null,
+      "debuff_duration": null,
+      "skill_type": "Attack"
+    }
+  ]
+}

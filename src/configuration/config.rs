@@ -32,6 +32,7 @@ pub enum Class {
     Enchanter,
     Warlock,
     Warrior,
+    Bard,
 }
 
 impl Display for Class {
